@@ -1,0 +1,3643 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard | Plaxeron</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="{{ url_for('static', filename='css/admin_dashboard.css') }}" rel="stylesheet">
+  </head>
+  <body class="section-init-pending">
+    <nav class="top-navbar">
+      <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+      {% set brand_href = url_for('admin_dashboard') %}
+      <a href="{{ brand_href }}" class="navbar-brand">
+        <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+      </a>
+      <div class="navbar-center">
+        <div class="global-search-wrap" id="gsWrap">
+          <div class="global-search-inner">
+            <i class="bi bi-search gs-icon"></i>
+            <select class="gs-type-select" id="gsType">
+              <option value="all">All</option>
+              <option value="student">Students</option>
+              <option value="company">Companies</option>
+            </select>
+            <div class="gs-divider"></div>
+            <input type="text" id="gsInput" class="gs-input" placeholder="Search by name, ID, email, industry, course…" autocomplete="off" />
+            <div class="gs-kbd"><kbd>/</kbd></div>
+            <button class="gs-clear" id="gsClear" onclick="clearGS()">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <div class="gs-dropdown" id="gsDropdown"></div>
+        </div>
+      </div>
+      <div class="navbar-right">
+        <div class="admin-role-badge d-none d-md-flex">
+          <i class="bi bi-shield-check"></i> Admin
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn-nav-logout">
+          <i class="bi bi-box-arrow-right"></i
+          ><span class="d-none d-md-inline">Logout</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section-lbl">Main</div>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="#overview" class="sidebar-link active" data-section="overview"><i class="bi bi-grid-1x2"></i><span>Overview</span></a
+          >
+        </li>
+        <li>
+          <a href="#pending" class="sidebar-link" data-section="pending">
+            <i class="bi bi-clock-history"></i><span>Pending Approvals</span> {%
+            set total_pending = (pending_companies|length) +
+            (ongoing_drives|selectattr('status','equalto','Pending')|list|length)
+            %} {% if total_pending > 0 %}<span class="sidebar-badge warn">{{ total_pending }}</span
+            >{% endif %}
+          </a>
+        </li>
+        <li>
+          <a href="#students" class="sidebar-link" data-section="students"><i class="bi bi-people"></i><span>Students</span></a
+          >
+        </li>
+        <li>
+          <a href="#companies" class="sidebar-link" data-section="companies"><i class="bi bi-building"></i><span>Companies</span></a
+          >
+        </li>
+        <li>
+          <a href="#drives" class="sidebar-link" data-section="drives"><i class="bi bi-calendar-event"></i
+            ><span>Placement Drives</span></a
+          >
+        </li>
+        <li>
+          <a href="#applications" class="sidebar-link" data-section="applications"><i class="bi bi-file-earmark-text"></i><span>Applications</span></a
+          >
+        </li>
+        <li>
+          <a href="#analytics" class="sidebar-link" data-section="analytics"><i class="bi bi-bar-chart-fill"></i><span>Analytics</span></a
+          >
+        </li>
+        <li>
+          <a href="#history" class="sidebar-link" data-section="history"><i class="bi bi-archive"></i><span>Historical Data</span></a
+          >
+        </li>
+        <li>
+          <a href="#broadcast" class="sidebar-link" data-section="broadcast"><i class="bi bi-megaphone-fill"></i><span>Broadcast</span></a
+          >
+        </li>
+        <li>
+          <a href="#support" class="sidebar-link" data-section="support"><i class="bi bi-headset"></i><span>Support Tickets</span></a
+          >
+        </li>
+      </ul>
+      <hr class="sidebar-divider" />
+      <div class="sidebar-section-lbl">Account</div>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #dc2626"><i class="bi bi-box-arrow-right" style="color: #dc2626"></i
+            ><span>Logout</span></a
+          >
+        </li>
+      </ul>
+    </aside>
+    <main class="main-content">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}{% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}{% endif %} {% endwith %}
+      <div class="content-section active" id="overview-section">
+        {% set ns = namespace(placed=0) %} {% for app in student_applications
+        %}{% if app.status == 'Placed' %}{% set ns.placed = ns.placed + 1 %}{%
+        endif %}{% endfor %} {% set ns_pending = (pending_companies|length) +
+        (ongoing_drives|selectattr('status','equalto','Pending')|list|length) %}
+        {% set placement_rate = ((ns.placed / students_count) * 100)|round(1) if
+        students_count > 0 else 0 %}
+        <div class="admin-banner">
+          <div class="admin-banner-bg"></div>
+          <div class="admin-banner-dots"></div>
+          <div class="admin-banner-content">
+            <div class="admin-banner-left">
+              <div class="admin-avatar">🛡️</div>
+              <div class="admin-banner-info">
+                <h2>Admin Control Panel</h2>
+                <p>Plaxeron Institute Placement Cell · Superuser Access</p>
+                <div class="admin-banner-tags">
+                  <span class="admin-tag"><i class="bi bi-shield-fill-check"></i>Full Access</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="banner-stats-row">
+            <div class="banner-stat bs-students">
+              <div class="banner-stat-val">{{ students_count }}</div>
+              <div class="banner-stat-lbl">Students</div>
+            </div>
+            <div class="banner-stat bs-companies">
+              <div class="banner-stat-val">{{ companies_count }}</div>
+              <div class="banner-stat-lbl">Companies</div>
+            </div>
+            <div class="banner-stat bs-drives">
+              <div class="banner-stat-val">{{ drives_count }}</div>
+              <div class="banner-stat-lbl">Total Drives</div>
+            </div>
+            <div class="banner-stat bs-placed">
+              <div class="banner-stat-val">{{ ns.placed }}</div>
+              <div class="banner-stat-lbl">Placed Students</div>
+            </div>
+            <div class="banner-stat bs-pending">
+              <div class="banner-stat-val">{{ apps_count }}</div>
+              <div class="banner-stat-lbl">Applications</div>
+            </div>
+          </div>
+          <div class="banner-actions">
+            <button class="btn-banner btn-banner-ghost" onclick="navigateToSection('students')">
+              <i class="bi bi-people"></i> Manage Students
+            </button>
+            <button class="btn-banner btn-banner-ghost" onclick="navigateToSection('companies')">
+              <i class="bi bi-building"></i> Manage Companies
+            </button>
+            {% if ns_pending > 0 %}
+            <button class="btn-banner btn-banner-warn" onclick="navigateToSection('pending')">
+              <i class="bi bi-exclamation-triangle"></i> {{ ns_pending }}
+              Pending Approvals
+            </button>
+            {% endif %}
+            <button class="btn-banner btn-banner-ghost" onclick="navigateToSection('analytics')">
+              <i class="bi bi-bar-chart"></i> Analytics
+            </button>
+            <button class="btn-banner btn-banner-broadcast" onclick="navigateToSection('broadcast')">
+              <i class="bi bi-megaphone"></i> Broadcast to Students
+            </button>
+            <button class="btn-banner btn-banner-broadcast" onclick=" navigateToSection('broadcast'); setTimeout(() => switchBroadcastTab('company'), 200);
+              "
+            >
+              <i class="bi bi-megaphone"></i> Broadcast to Companies
+            </button>
+          </div>
+        </div>
+        {% set fns =
+        namespace(applied=0,shortlisted=0,interview=0,selected=0,rejected=0) %}
+        {% for app in student_applications %} {% if app.status == 'Applied' %}{%
+        set fns.applied = fns.applied + 1 %} {% elif app.status == 'Shortlisted'
+        %}{% set fns.shortlisted = fns.shortlisted + 1 %} {% elif app.status ==
+        'Interview' %}{% set fns.interview = fns.interview + 1 %} {% elif
+        app.status == 'Placed' %}{% set fns.selected = fns.selected + 1 %} {%
+        elif app.status == 'Rejected' %}{% set fns.rejected = fns.rejected + 1
+        %} {% endif %} {% endfor %} {% set ds_approved =
+        ongoing_drives|selectattr('status','equalto','Approved')|list|length %}
+        {% set ds_pending =
+        ongoing_drives|selectattr('status','equalto','Pending')|list|length %}
+        {% set ds_closed =
+        ongoing_drives|selectattr('status','equalto','Closed')|list|length %} {%
+        set ds_rejected =
+        ongoing_drives|selectattr('status','equalto','Rejected')|list|length %}
+        <div class="overview-viz-row">
+          <div class="placement-ring-card">
+            <div class="ring-wrap">
+              <svg class="ring-svg" width="130" height="130" viewBox="0 0 130 130">
+                <circle class="ring-bg" cx="65" cy="65" r="54" />
+                <circle class="ring-fill" id="overviewRingFill" cx="65" cy="65" r="54" />
+              </svg>
+              <div class="ring-center">
+                <div class="ring-pct" id="overviewRingPct">0%</div>
+                <div class="ring-sub-lbl">Placed</div>
+              </div>
+            </div>
+            <h4 style=" font-family: &quot;Outfit&quot;, sans-serif; font-size: 0.85rem; font-weight: 700; color: var(--grey-700); margin: 0; ">
+              Placement Rate
+            </h4>
+            <div style=" font-size: 0.75rem; color: var(--grey-400); line-height: 1.5; text-align: center; ">
+              <strong class="u-text-success">{{ ns.placed }}</strong>
+              placed of {{ students_count }}
+            </div>
+          </div>
+          <div class="funnel-card">
+            <div class="funnel-card-title">
+              <i class="bi bi-funnel-fill u-text-accent"></i>
+              Application Pipeline
+            </div>
+            <div class="funnel-stages" id="overviewFunnel" data-applied="{{ fns.applied }}" data-shortlisted="{{ fns.shortlisted }}" data-interview="{{ fns.interview }}" data-selected="{{ fns.selected }}" data-rejected="{{ fns.rejected }}" data-total="{{ apps_count }}">
+              {% set stages =
+              [('Applied','fbar-applied','#06b6d4','#22d3ee',fns.applied,'100%'),('Shortlisted','fbar-shortlisted','#f59e0b','#fbbf24',fns.shortlisted,'fpct-shortlisted'),('Interview','fbar-interview','#8b5cf6','#a78bfa',fns.interview,'fpct-interview'),('Placed','fbar-selected','#10b981','#34d399',fns.selected,'fpct-selected'),('Rejected','fbar-rejected','#ef4444','#f87171',fns.rejected,'fpct-rejected')]
+              %} {% for lbl,bid,c1,c2,cnt,pct in stages %}
+              <div class="funnel-stage">
+                <div class="funnel-label">{{ lbl }}</div>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" id="{{ bid }}" style="background:linear-gradient(90deg,{{ c1 }},{{ c2 }});">
+                    {{ cnt }}
+                  </div>
+                </div>
+                <div class="funnel-count">{{ cnt }}</div>
+                <div class="funnel-pct" {% if pct !="100%" %}id="{{ pct }}" {% endif %}>
+                  {% if pct == '100%' %}100%{% else %}—{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="drive-status-card" id="driveStatusCard" data-approved="{{ ds_approved }}" data-pending="{{ ds_pending }}" data-closed="{{ ds_closed }}" data-rejected="{{ ds_rejected }}" data-total="{{ drives_count }}">
+            <h4><i class="bi bi-calendar-event-fill"></i> Drive Status</h4>
+            <div class="drive-status-bars">
+              {% for lbl,did,col,cnt in
+              [('Approved','dsbar-approved','var(--success)',ds_approved),('Pending','dsbar-pending','var(--warning)',ds_pending),('Closed','dsbar-closed','var(--grey-400)',ds_closed),('Rejected','dsbar-rejected','var(--danger)',ds_rejected)]
+              %}
+              <div>
+                <div class="ds-row-top">
+                  <div class="ds-label">
+                    <div class="ds-label-dot" style="background:{{ col }};"></div>
+                    {{ lbl }}
+                  </div>
+                  <div class="ds-count">{{ cnt }}</div>
+                </div>
+                <div class="ds-bar-wrap">
+                  <div class="ds-bar" id="{{ did }}" style="background:{{ col }};"></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div class="activity-card" style="margin-bottom: 1.5rem">
+          <div class="activity-hdr">
+            <div class="activity-title">
+              <i class="bi bi-activity"></i> Recent Activity
+            </div>
+            <span style="font-size: 0.72rem; color: var(--grey-400)">Click any event for details · Latest first</span
+            >
+          </div>
+          <div class="activity-body" id="activityFeed">
+            {% set af = [] %} {% for app in student_applications %} {% if
+            app.status == 'Placed' %}{% set _ =
+            af.append({'type':'placed','icon':'bi-trophy-fill','text':
+            app.student.name + ' was Placed','sub':'at ' +
+            app.drive.company.company_name + ' · ' +
+            app.drive.job_title,'date':(app.status_updated_at or app.application_date),'ref':'app','id':app.id,'student':app.student.name,'company':app.drive.company.company_name,'drive':app.drive.job_title})
+            %} {% elif app.status == 'Shortlisted' %}{% set _ =
+            af.append({'type':'shortlisted','icon':'bi-star-fill','text':
+            app.student.name + ' Shortlisted','sub':app.drive.job_title + ' · '
+            +
+            app.drive.company.company_name,'date':(app.status_updated_at or app.application_date),'ref':'app','id':app.id})
+            %} {% elif app.status == 'Interview' %}{% set _ =
+            af.append({'type':'interview','icon':'bi-camera-video-fill','text':
+            app.student.name + ' → Interview Stage','sub':app.drive.job_title +
+            ' · ' +
+            app.drive.company.company_name,'date':(app.status_updated_at or app.application_date),'ref':'app','id':app.id})
+            %} {% elif app.status == 'Rejected' %}{% set _ =
+            af.append({'type':'rejected','icon':'bi-x-circle-fill','text':
+            app.student.name + ' Not Progressed','sub':app.drive.job_title + ' ·
+            ' +
+            app.drive.company.company_name,'date':(app.status_updated_at or app.application_date),'ref':'app','id':app.id})
+            %} {% elif app.status == 'Applied' %}{% set _ =
+            af.append({'type':'applied','icon':'bi-send-fill','text':
+            app.student.name + ' Applied','sub':app.drive.job_title + ' · ' +
+            app.drive.company.company_name,'date':app.application_date,'ref':'app','id':app.id})
+            %} {% endif %} {% endfor %} {% for drive in ongoing_drives %} {% if
+            drive.status == 'Approved' %}{% set _ =
+            af.append({'type':'approved','icon':'bi-check-circle-fill','text':'Drive
+            Approved: ' + drive.job_title,'sub':(drive.drive_id or ('#' ~
+            drive.id)) + ' · ' +
+            drive.company.company_name,'date':(drive.updated_at or drive.created_at),'ref':'drive','id':drive.id})
+            %} {% elif drive.status == 'Rejected' %}{% set _ =
+            af.append({'type':'rejected','icon':'bi-x-circle-fill','text':'Drive
+            Rejected: ' + drive.job_title,'sub':(drive.drive_id or ('#' ~
+            drive.id)) + ' · ' +
+            drive.company.company_name,'date':(drive.updated_at or drive.created_at),'ref':'drive','id':drive.id})
+            %} {% elif drive.status == 'Pending' %}{% set _ =
+            af.append({'type':'pending','icon':'bi-hourglass-split','text':'New
+            Drive Submitted: ' + drive.job_title,'sub':(drive.drive_id or ('#' ~
+            drive.id)) + ' · ' + drive.company.company_name + ' · Awaiting
+            Approval','date':drive.created_at,'ref':'drive','id':drive.id}) %}
+            {% elif drive.status == 'Closed' %}{% set _ =
+            af.append({'type':'rejected','icon':'bi-archive-fill','text':'Drive
+            Closed: ' + drive.job_title,'sub':(drive.drive_id or ('#' ~
+            drive.id)) + ' · ' +
+            drive.company.company_name,'date':drive.closed_at or
+            drive.created_at,'ref':'drive','id':drive.id}) %} {% endif %} {%
+            endfor %} {% for company in registered_companies %} {% if
+            company.approval_status == 'Approved' %}{% set _ =
+            af.append({'type':'company','icon':'bi-building-fill','text':
+            company.company_name + ' Approved','sub': (company.industry or
+            'Company') + ' · ' +
+            company.company_id,'date':company.created_at,'ref':'company','id':company.id})
+            %} {% endif %} {% endfor %} {% for company in pending_companies %}
+            {% set _ =
+            af.append({'type':'pending','icon':'bi-hourglass-split','text':
+            company.company_name + ' Awaiting Approval','sub':'New registration
+            · ' +
+            company.company_id,'date':company.created_at,'ref':'company','id':company.id})
+            %} {% endfor %} {% set af_sorted =
+            af|sort(attribute='date',reverse=True) %} {% if af_sorted %} {% for
+            ev in af_sorted %}
+            <div class="af-item" onclick="showActivityDetail('{{ ev.ref }}','{{ ev.id }}')">
+              <div class="af-dot {{ ev.type }}">
+                <i class="bi {{ ev.icon }}"></i>
+              </div>
+              <div class="af-content">
+                <div class="af-text"><strong>{{ ev.text }}</strong></div>
+                <div class="af-time">{{ ev.sub }}</div>
+                <div class="af-time" data-activity-date="{{ ev.date.isoformat() if ev.date else '' }}" style=" font-size: 0.72rem; color: var(--grey-400); margin-top: 2px; "></div>
+              </div>
+              <i class="bi bi-chevron-right" style=" color: var(--grey-300); font-size: 0.75rem; margin-top: 2px; "></i>
+            </div>
+            {% endfor %} {% else %}
+            <div class="af-empty u-empty-center">
+              <i class="bi bi-inbox" style=" font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.4; "></i
+              >No activity yet
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% set active_drives =
+        ongoing_drives|selectattr('status','equalto','Approved')|list %} {% if
+        active_drives %}
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-title">
+              <i class="bi bi-calendar-check-fill"></i> Active Placement Drives
+            </div>
+            <div style="display: flex; gap: 0.5rem">
+              <button class="btn-c btn-c-outline btn-c-sm" onclick="navigateToSection('drives')">
+                View All <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="table-wrap u-no-radius-shadow">
+            <table class="tbl" id="activeDrivesTable">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>Job Title</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th>Apps</th>
+                  <th>Shortlisted</th>
+                  <th>Interview</th>
+                  <th>Placed</th>
+                  <th>Rejected</th>
+                  <th>Deadline</th>
+                  <th class="u-text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for drive in active_drives %} {% set d_short =
+                drive.applications|selectattr('status','equalto','Shortlisted')|list|length
+                %} {% set d_intv =
+                drive.applications|selectattr('status','equalto','Interview')|list|length
+                %} {% set d_sel =
+                drive.applications|selectattr('status','equalto','Placed')|list|length
+                %} {% set d_rej =
+                drive.applications|selectattr('status','equalto','Rejected')|list|length
+                %}
+                <tr>
+                  <td class="u-fw700-grey400">
+                    {{ drive.drive_id or ('#' ~ drive.id) }}
+                  </td>
+                  <td>
+                    <div class="u-fw600">{{ drive.job_title }}</div>
+                    {% if drive.location %}<small class="u-text-grey400">📍{{ drive.location }}</small
+                    >{% endif %}
+                  </td>
+                  <td>{{ drive.company.company_name }}</td>
+                  <td>
+                    <span class="badge-pill badge-{{ drive.status|lower }}">{{ drive.status }}</span
+                    >
+                  </td>
+                  <td class="u-fw700-accent">
+                    {{ drive.applications|length }}
+                  </td>
+                  <td style="font-weight: 700; color: var(--warning)">
+                    {{ d_short }}
+                  </td>
+                  <td style="font-weight: 700; color: var(--purple)">
+                    {{ d_intv }}
+                  </td>
+                  <td class="u-fw700-success">
+                    {{ d_sel }}
+                  </td>
+                  <td class="u-fw700-danger">
+                    {{ d_rej }}
+                  </td>
+                  <td class="u-fs082-grey400">
+                    {% if drive.application_deadline %}<span data-ist-dt="{{ drive.application_deadline.isoformat() }}" data-ist-format="date">{{ drive.application_deadline.strftime('%d %b %Y') }}</span
+                    >{% else %}—{% endif %}
+                  </td>
+                  <td class="u-text-right">
+                    <div class="student-actions drive-actions">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="showActivityDetail('drive','{{ drive.id }}')" title="View">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn-c btn-c-warning btn-c-sm" onclick="showDriveEditDetail('{{ drive.id }}')" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-title">
+              <i class="bi bi-calendar-check-fill"></i> Active Placement Drives
+            </div>
+          </div>
+          <div class="card-body" style="text-align: center; color: var(--grey-400); padding: 2rem">
+            No currently active drives.
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="content-section" id="pending-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-clock-history"></i> Pending Approvals
+          </h1>
+        </div>
+        {% set pending_drives_list =
+        ongoing_drives|selectattr('status','equalto','Pending')|list %}
+        <div class="pending-tabs">
+          <button class="pending-tab-btn active" id="ptab-companies" onclick="switchPendingApprovalTab('companies')">
+            <i class="bi bi-building me-1"></i> Companies ({{
+            pending_companies|length }})
+          </button>
+          <button class="pending-tab-btn" id="ptab-drives" onclick="switchPendingApprovalTab('drives')">
+            <i class="bi bi-calendar-event me-1"></i> Drives ({{
+            pending_drives_list|length }})
+          </button>
+        </div>
+        <div class="pending-pane active" id="pending-pane-companies">
+          <h6 style=" font-weight: 700; margin-bottom: 1rem; font-family: &quot;Outfit&quot;, sans-serif; font-size: 1rem; ">
+            <i class="bi bi-building text-warning me-2"></i> Company
+            Registrations Awaiting Approval
+          </h6>
+          {% if pending_companies %}
+          <div class="table-wrap" style="margin-bottom: 2.5rem">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>Company</th>
+                  <th>Email</th>
+                  <th>Industry</th>
+                  <th>Employees</th>
+                  <th>Website</th>
+                  <th>Registered</th>
+                  <th class="u-text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for company in pending_companies %}
+                <tr>
+                  <td class="u-fw700-grey400">
+                    {{ company.company_id or ('#' ~ company.id) }}
+                  </td>
+                  <td>
+                    <div class="u-fw600">
+                      {{ company.company_name }}
+                    </div>
+                    <small class="u-text-grey400">{{ company.hr_contact or '' }}</small
+                    >
+                  </td>
+                  <td style="font-size: 0.82rem; color: var(--grey-600)">
+                    {{ company.email }}
+                  </td>
+                  <td>{{ company.industry or '—' }}</td>
+                  <td style="font-weight: 600; color: var(--grey-600)">
+                    {{ company.company_size or '—' }}
+                  </td>
+                  <td>
+                    {% if company.website %}<a href="{{ company.website }}" target="_blank" style=" color: var(--accent); text-decoration: none; font-weight: 600; "><i class="bi bi-link-45deg"></i> Visit</a
+                    >{% else %}—{% endif %}
+                  </td>
+                  <td class="u-fs082-grey400">
+                    <span data-ist-dt="{{ company.created_at.isoformat() if company.created_at else '' }}" data-ist-format="datetime">{{ company.created_at.strftime('%d %b %Y, %I:%M %p') if
+                      company.created_at else '—' }}</span
+                    >
+                  </td>
+                  <td class="u-text-right">
+                    <div style=" display: flex; gap: 0.35rem; justify-content: flex-end; ">
+                      <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#companyDetailModal{{ company.id }}">
+                        <i class="bi bi-eye"></i> View
+                      </button>
+                      <a href="{{ url_for('approve_company', company_id=company.id) }}" class="btn-c btn-c-success btn-c-sm"><i class="bi bi-check-circle"></i> Approve</a
+                      >
+                      <form method="POST" action="{{ url_for('reject_company', company_id=company.id) }}" class="u-m-0-inline">
+                        <input type="hidden" name="return_section" value="pending" />
+                        <button type="submit" class="btn-c btn-c-danger btn-c-sm" onclick="return confirm('Reject this company?');">
+                          <i class="bi bi-x-circle"></i> Reject
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                <div class="modal fade" id="companyDetailModal{{ company.id }}" tabindex="-1">
+                  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                      <div class="modal-header-dark">
+                        <div class="modal-title-custom">
+                          🏢 {{ company.company_name }} — Full Details
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body">
+                        <div class="detail-section-title">
+                          <i class="bi bi-building"></i> Company Information
+                        </div>
+                        <div class="detail-grid">
+                          <div class="detail-item">
+                            <label>Company ID</label>
+                            <div class="dval" style="font-family: monospace">
+                              {{ company.company_id or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Company Name</label>
+                            <div class="dval">{{ company.company_name }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Industry</label>
+                            <div class="dval">
+                              {{ company.industry or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Company Size</label>
+                            <div class="dval">
+                              {{ company.company_size or '—' }} employees
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Location</label>
+                            <div class="dval">
+                              {{ company.location or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Website</label>
+                            <div class="dval">
+                              {% if company.website %}<a href="{{ company.website }}" target="_blank" class="u-text-accent">{{ company.website }}</a
+                              >{% else %}—{% endif %}
+                            </div>
+                          </div>
+                        </div>
+                        {% if company.description %}
+                        <div class="u-mt-1">
+                          <label class="form-label">Company Profile</label>
+                          <p style=" font-size: 0.9rem; color: var(--grey-600); line-height: 1.6; ">
+                            {{ company.description }}
+                          </p>
+                        </div>
+                        {% endif %}
+                        <div class="detail-section-title">
+                          <i class="bi bi-person-badge"></i> HR / Contact
+                          Details
+                        </div>
+                        <div class="detail-grid">
+                          <div class="detail-item">
+                            <label>HR Name</label>
+                            <div class="dval">
+                              {{ company.hr_contact or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>HR Designation</label>
+                            <div class="dval">
+                              {{ company.hr_designation or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Primary Email</label>
+                            <div class="dval">{{ company.email }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Alt Email</label>
+                            <div class="dval">
+                              {{ company.alt_email or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Mobile</label>
+                            <div class="dval">{{ company.mobile or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Office Number</label>
+                            <div class="dval">
+                              {{ company.office_number or '—' }}
+                            </div>
+                          </div>
+                        </div>
+                        <div class="detail-section-title">
+                          <i class="bi bi-info-circle"></i> Registration Info
+                        </div>
+                        <div class="detail-grid">
+                          <div class="detail-item">
+                            <label>Registered On</label>
+                            <div class="dval">
+                              <span data-ist-dt="{{ company.created_at.isoformat() if company.created_at else '' }}" data-ist-format="datetime">{{ company.created_at.strftime('%d %b %Y, %I:%M
+                                %p') if company.created_at else '—' }}</span
+                              >
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Status</label>
+                            <div class="dval">
+                              <span class="badge-pill badge-pending">Pending Approval</span
+                              >
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer u-gap-05">
+                        <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                          Close
+                        </button>
+                        <a href="{{ url_for('approve_company', company_id=company.id) }}" class="btn-c btn-c-success"><i class="bi bi-check-circle"></i> Approve</a
+                        >
+                        <form method="POST" action="{{ url_for('reject_company', company_id=company.id) }}" class="u-m-0-inline">
+                          <input type="hidden" name="return_section" value="pending" />
+                          <button type="submit" class="btn-c btn-c-danger" onclick="return confirm('Reject this company?');">
+                            <i class="bi bi-x-circle"></i> Reject
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state" style="margin-bottom: 2rem; padding: 2rem">
+            <i class="bi bi-check-circle" style="font-size: 2.5rem; color: var(--success)"></i>
+            <h5>No Pending Companies</h5>
+            <p>All registrations processed.</p>
+          </div>
+          {% endif %}
+        </div>
+        <div class="pending-pane" id="pending-pane-drives">
+          <h6 style=" font-weight: 700; margin-bottom: 1rem; font-family: &quot;Outfit&quot;, sans-serif; font-size: 1rem; ">
+            <i class="bi bi-calendar-event text-warning me-2"></i> Placement
+            Drives Awaiting Approval
+          </h6>
+          {% set target_degrees = [] %} {% set target_years = [] %} {% for s in
+          registered_students %} {% if s.degree and s.degree not in
+          target_degrees %} {% set _ = target_degrees.append(s.degree) %} {%
+          endif %} {% if s.year_of_study and s.year_of_study not in target_years
+          %} {% set _ = target_years.append(s.year_of_study) %} {% endif %} {%
+          endfor %} {% if pending_drives_list %}
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Job Title</th>
+                  <th>Company</th>
+                  <th>Package (LPA)</th>
+                  <th>Eligibility</th>
+                  <th>Deadline</th>
+                  <th>Student Publish</th>
+                  <th>Submitted</th>
+                  <th class="u-text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for drive in pending_drives_list %}
+                <tr>
+                  <td class="u-fw700-grey400">
+                    {{ drive.drive_id or ('#' ~ drive.id) }}
+                  </td>
+                  <td>
+                    <div class="u-fw600">{{ drive.job_title }}</div>
+                    {% if drive.location %}<small class="u-text-grey400">📍{{ drive.location }}</small
+                    >{% endif %}
+                  </td>
+                  <td>{{ drive.company.company_name }}</td>
+                  <td class="u-fw700-success">
+                    {% if drive.salary %}₹{{ "{:,}".format(drive.salary) }}
+                    LPA{% else %}—{% endif %}
+                  </td>
+                  <td class="u-fs082">
+                    {{ drive.eligibility_criteria or drive.eligibility or '—' }}
+                  </td>
+                  <td class="u-fs082-grey400">
+                    {% if drive.application_deadline %}{{
+                    drive.application_deadline.strftime('%d %b %Y') }}{% else
+                    %}—{% endif %}
+                  </td>
+                  <td class="u-fs082-grey400">
+                    {% if drive.publish_at_ist %}<span data-ist-dt="{{ drive.publish_at_ist.isoformat() }}" data-ist-format="datetime">{{ drive.publish_at_ist.strftime('%d %b %Y, %I:%M %p')
+                      }}</span
+                    >{% else %}Immediate{% endif %}
+                  </td>
+                  <td class="u-fs082-grey400">
+                    <span data-ist-dt="{{ drive.created_at.isoformat() if drive.created_at else '' }}" data-ist-format="datetime">{{ drive.created_at.strftime('%d %b %Y, %I:%M %p') if
+                      drive.created_at else '—' }}</span
+                    >
+                  </td>
+                  <td class="u-text-right">
+                    <div style=" display: flex; gap: 0.35rem; justify-content: flex-end; ">
+                      <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#pendingDriveModal{{ drive.id }}">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                      <button class="btn-c btn-c-success btn-c-sm" data-bs-toggle="modal" data-bs-target="#approveDriveModal{{ drive.id }}">
+                        <i class="bi bi-check-circle"></i> Approve
+                      </button>
+                      <form method="POST" action="{{ url_for('reject_drive', drive_id=drive.id) }}" class="u-m-0-inline">
+                        <input type="hidden" name="return_section" value="pending" />
+                        <button type="submit" class="btn-c btn-c-danger btn-c-sm" onclick="return confirm('Reject?');">
+                          <i class="bi bi-x-circle"></i> Reject
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                <div class="modal fade" id="pendingDriveModal{{ drive.id }}" tabindex="-1">
+                  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                      <div class="modal-header-dark">
+                        <div class="modal-title-custom">
+                          {{ drive.job_title }} · {{ drive.drive_id or ('#' ~
+                          drive.id) }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body">
+                        <div class="detail-grid">
+                          <div class="detail-item">
+                            <label>Drive ID</label>
+                            <div class="dval">
+                              {{ drive.drive_id or ('#' ~ drive.id) }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Company</label>
+                            <div class="dval">
+                              {{ drive.company.company_name }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Package</label>
+                            <div class="dval u-text-success">
+                              {% if drive.salary %}₹{{
+                              "{:,}".format(drive.salary) }} LPA{% else %}Not
+                              disclosed{% endif %}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Location</label>
+                            <div class="dval">{{ drive.location or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Deadline</label>
+                            <div class="dval">
+                              {% if drive.application_deadline %}<span data-ist-dt="{{ drive.application_deadline.isoformat() }}" data-ist-format="date">{{ drive.application_deadline.strftime('%d %b %Y') }}</span
+                              >{% else %}—{% endif %}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Student Publish</label>
+                            <div class="dval">
+                              {% if drive.publish_at_ist %}<span data-ist-dt="{{ drive.publish_at_ist.isoformat() }}" data-ist-format="datetime">{{ drive.publish_at_ist.strftime('%d %b %Y,
+                                %I:%M %p') }}</span
+                              >{% else %}Immediate{% endif %}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Job Type</label>
+                            <div class="dval">{{ drive.job_type or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Work Mode</label>
+                            <div class="dval">{{ drive.work_mode or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Vacancies</label>
+                            <div class="dval">{{ drive.vacancies or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Experience</label>
+                            <div class="dval">
+                              {{ drive.experience_level or '—' }}
+                            </div>
+                          </div>
+                        </div>
+                        <div class="u-mt-1">
+                          <label class="form-label">Eligibility</label>
+                          <p class="u-fs09">
+                            {{ drive.eligibility_criteria or drive.eligibility
+                            or '—' }}
+                          </p>
+                        </div>
+                        <div class="u-mt-075">
+                          <label class="form-label">Required Skills</label>
+                          <p class="u-fs09">
+                            {{ drive.required_skills or '—' }}
+                          </p>
+                        </div>
+                        <div class="u-mt-075">
+                          <label class="form-label">Job Description</label>
+                          <p style="font-size: 0.9rem; white-space: pre-line">
+                            {{ drive.job_description or '—' }}
+                          </p>
+                        </div>
+                        {% if drive.selection_process %}
+                        <div class="u-mt-075">
+                          <label class="form-label">Selection Process</label>
+                          <p class="u-fs09">
+                            {{ drive.selection_process }}
+                          </p>
+                        </div>
+                        {% endif %} {% if drive.additional_notes %}
+                        <div class="u-mt-075">
+                          <label class="form-label">Additional Notes</label>
+                          <p class="u-fs09">
+                            {{ drive.additional_notes }}
+                          </p>
+                        </div>
+                        {% endif %}
+                      </div>
+                      <div class="modal-footer u-gap-05">
+                        <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                          Close
+                        </button>
+                        <button type="button" class="btn-c btn-c-success" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#approveDriveModal{{ drive.id }}">
+                          <i class="bi bi-check-circle"></i> Approve
+                        </button>
+                        <form method="POST" action="{{ url_for('reject_drive', drive_id=drive.id) }}" class="u-m-0-inline">
+                          <input type="hidden" name="return_section" value="pending" />
+                          <button type="submit" class="btn-c btn-c-danger" onclick="return confirm('Reject?');">
+                            <i class="bi bi-x-circle"></i> Reject
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal fade" id="approveDriveModal{{ drive.id }}" tabindex="-1">
+                  <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                      <div class="modal-header-dark">
+                        <div class="modal-title-custom">
+                          <i class="bi bi-check-circle me-2"></i>Approve — {{
+                          drive.job_title }} · {{ drive.drive_id or ('#' ~
+                          drive.id) }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                      </div>
+                      <form id="approveDriveForm{{ drive.id }}" action="{{ url_for('approve_drive', drive_id=drive.id) }}" method="POST" onsubmit="return validateAudienceForm(this, true, 'approveAudienceError{{ drive.id }}')">
+                        <div class="modal-body">
+                          <div class="audience-panel">
+                            <div class="detail-section-title" style="margin-bottom: 0.5rem; color: #92400e">
+                              <i class="bi bi-bullseye"></i> Target Students
+                              (Mandatory)
+                            </div>
+                            <div class="audience-head">
+                              Choose one or more options in both groups.
+                            </div>
+                            <div class="audience-grid">
+                              <div class="audience-group">
+                                <div class="audience-group-label">
+                                  Target Degrees
+                                </div>
+                                <div class="audience-checklist">
+                                  {% for deg in target_degrees|sort %}
+                                  <label class="audience-item">
+                                    <input type="checkbox" name="target_degrees" value="{{ deg }}" />
+                                    <span>{{ deg }}</span>
+                                  </label>
+                                  {% endfor %}
+                                </div>
+                              </div>
+                              <div class="audience-group">
+                                <div class="audience-group-label">
+                                  Target Year Of Study
+                                </div>
+                                <div class="audience-checklist">
+                                  {% for yr in target_years|sort %}
+                                  <label class="audience-item">
+                                    <input type="checkbox" name="target_years" value="{{ yr }}" />
+                                    <span>{{ yr }}</span>
+                                  </label>
+                                  {% endfor %}
+                                </div>
+                              </div>
+                            </div>
+                            <div style="margin-top: 0.7rem">
+                              <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="approveAllowAllAudience{{ drive.id }}" name="allow_all_audience" />
+                                <label class="form-check-label" for="approveAllowAllAudience{{ drive.id }}">
+                                  Send to all students
+                                </label>
+                              </div>
+                            </div>
+                            <div id="approveAudienceError{{ drive.id }}" class="audience-error">
+                              Please choose at least one degree and one study
+                              year.
+                            </div>
+                          </div>
+                        </div>
+                        <div class="modal-footer u-gap-05">
+                          <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                            Cancel
+                          </button>
+                          <button type="submit" class="btn-c btn-c-success">
+                            <i class="bi bi-check-circle"></i> Confirm Approval
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state" style="padding: 2rem">
+            <i class="bi bi-check-circle" style="font-size: 2.5rem; color: var(--success)"></i>
+            <h5>No Pending Drives</h5>
+            <p>All drives reviewed.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="content-section" id="students-section">
+        <div class="section-hdr">
+          <h1 class="section-title"><i class="bi bi-people"></i> Students</h1>
+        </div>
+        {% if registered_students %}
+        <div class="search-bar">
+          <div class="search-wrap">
+            <i class="bi bi-search"></i
+            ><input type="text" class="tbl-search" id="studentSearch" placeholder="Search by student ID, name, mobile/contact, email…" />
+          </div>
+          <select class="tbl-filter" id="studentStatusFilter">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="blacklisted">Blacklisted</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl" id="studentsTbl">
+            <thead>
+              <tr>
+                <th>#ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Contact</th>
+                <th>College</th>
+                <th>Course</th>
+                <th>Applications</th>
+                <th>Status</th>
+                <th class="u-text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTbody">
+              {% for student in registered_students %}
+              <tr class="student-row" data-search="{{ ((student.student_id or student.id|string) + ' ' + student.name + ' ' + student.email + ' ' + (student.college or '') + ' ' + (student.degree or '') + ' ' + (student.contact or ''))|lower }}" data-student-id="{{ (student.student_id or student.id|string)|lower }}" data-student-name="{{ (student.name or '')|lower }}" data-student-email="{{ (student.email or '')|lower }}" data-student-contact="{{ (student.contact or '')|lower }}" data-status="{{ 'active' if student.is_active else 'blacklisted' }}">
+                <td class="u-fw700-grey400">
+                  {{ student.student_id or ('#' ~ student.id) }}
+                </td>
+                <td class="u-fw600">{{ student.name }}</td>
+                <td style="font-size: 0.82rem; color: var(--grey-600)">
+                  {{ student.email }}
+                </td>
+                <td class="u-fs082">{{ student.contact or '—' }}</td>
+                <td class="u-fs082">{{ student.college or '—' }}</td>
+                <td style=" font-size: 0.82rem; font-weight: 600; color: var(--accent); ">
+                  {{ student.degree or '—' }}
+                </td>
+                <td style="font-weight: 700; color: var(--grey-600)">
+                  {{ student.applications|length }}
+                </td>
+                <td>
+                  {% if student.is_active %}<span class="badge-pill badge-active"><i class="bi bi-check-circle"></i> Active</span
+                  >
+                  {% else %}<span class="badge-pill badge-blacklisted"><i class="bi bi-x-circle"></i> Blacklisted</span
+                  >{% endif %}
+                </td>
+                <td class="u-text-right">
+                  <div class="student-actions" style=" display: flex; gap: 0.3rem; justify-content: flex-end; flex-wrap: wrap; ">
+                    <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#viewStudentModal{{ student.id }}" title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn-c btn-c-warning btn-c-sm" data-bs-toggle="modal" data-bs-target="#editStudentModal{{ student.id }}" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    {% if student.is_active %}
+                    <form method="POST" action="{{ url_for('blacklist_user', user_type='student', user_id=student.id) }}" class="u-m-0-inline">
+                      <button type="submit" class="btn-c btn-c-danger btn-c-sm" onclick="return confirm('Blacklist this student?');" title="Blacklist">
+                        <i class="bi bi-ban"></i>
+                      </button>
+                    </form>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('activate_user', user_type='student', user_id=student.id) }}" class="u-m-0-inline">
+                      <button type="submit" class="btn-c btn-c-success btn-c-sm" title="Activate">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin_delete_student', student_id=student.id) }}" class="u-m-0-inline">
+                      <button type="submit" class="btn-c btn-c-danger btn-c-sm" onclick=" return confirm('Permanently delete this student?'); " title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <div class="modal fade" id="viewStudentModal{{ student.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header-dark" style=" display: flex; align-items: center; justify-content: space-between; ">
+                      <div class="modal-title-custom">{{ student.name }}</div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="margin-left: auto"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="detail-section-title">
+                        <i class="bi bi-person"></i> Personal Information
+                      </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>Student ID</label>
+                          <div class="dval">
+                            {{ student.student_id or ('#' ~ student.id) }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Full Name</label>
+                          <div class="dval">{{ student.name }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Email</label>
+                          <div class="dval">{{ student.email }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Contact</label>
+                          <div class="dval">{{ student.contact or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Date of Birth</label>
+                          <div class="dval">{{ student.dob or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Status</label>
+                          <div class="dval">
+                            {% if student.is_active %}<span class="badge-pill badge-active">Active</span
+                            >{% else %}<span class="badge-pill badge-blacklisted">Blacklisted</span
+                            >{% endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Registered On</label>
+                          <div class="dval">
+                            <span data-ist-dt="{{ student.created_at.isoformat() if student.created_at else '' }}" data-ist-format="datetime">{{ student.created_at.strftime('%d %b %Y, %I:%M %p') if student.created_at else '—' }}</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                      <div class="detail-section-title">
+                        <i class="bi bi-mortarboard"></i> Academic Details
+                      </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>College</label>
+                          <div class="dval">{{ student.college or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Course / Degree</label>
+                          <div class="dval">{{ student.degree or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Branch</label>
+                          <div class="dval">{{ student.branch or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Year of Study</label>
+                          <div class="dval">
+                            {{ student.year_of_study or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>CGPA</label>
+                          <div class="dval u-fw700-accent">
+                            {{ "%.2f"|format(student.cgpa) if student.cgpa else
+                            '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Graduation Year</label>
+                          <div class="dval">
+                            {{ student.graduation_year or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>10th %</label>
+                          <div class="dval">
+                            {{ student.tenth_percent or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>12th %</label>
+                          <div class="dval">
+                            {{ student.twelfth_percent or '—' }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="detail-section-title">
+                        <i class="bi bi-briefcase"></i> Professional
+                      </div>
+                      <div class="detail-item u-mb-075">
+                        <label>Skills</label>
+                        <div class="dval">{{ student.skills or '—' }}</div>
+                      </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>LinkedIn</label>
+                          <div class="dval">
+                            {% if student.linkedin %}<a href="{{ student.linkedin }}" target="_blank" class="u-text-accent">View Profile</a
+                            >{% else %}—{% endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>GitHub</label>
+                          <div class="dval">
+                            {% if student.github %}<a href="{{ student.github }}" target="_blank" class="u-text-accent">View Profile</a
+                            >{% else %}—{% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      {% if student.resume_url %}
+                      <div class="u-mt-075">
+                        <button type="button" class="btn-c btn-c-info btn-c-sm" onclick='openResumePreview({{ ("/static/" ~ student.resume_url)|tojson }}, {{ (student.name ~ " Resume")|tojson }})'>
+                          <i class="bi bi-file-earmark-pdf"></i> View Resume
+                        </button>
+                      </div>
+                      {% endif %}
+                      <div class="detail-section-title">
+                        <i class="bi bi-file-earmark-text"></i> Applications ({{
+                        student.applications|length }})
+                      </div>
+                      {% if student.applications %}
+                      <div style=" display: flex; flex-direction: column; gap: 0.5rem; ">
+                        {% for app in student.applications %}
+                        <div style=" display: flex; justify-content: space-between; align-items: center; background: var(--grey-50); padding: 0.6rem 0.9rem; border-radius: 8px; border: 1px solid var(--grey-200); cursor: pointer; " title="View application details" onclick="bootstrap.Modal.getInstance(document.getElementById('viewStudentModal{{ student.id }}'))?.hide(); setTimeout(()=>showActivityDetail('app','{{ app.id }}'),180);"
+                        >
+                          <div>
+                            <div class="u-fw600-fs085">
+                              {{ app.drive.job_title }}
+                            </div>
+                            <div class="u-fs078-grey400">
+                              {{ app.drive.company.company_name }}
+                            </div>
+                          </div>
+                          <div style=" display: flex; align-items: center; gap: 0.5rem; ">
+                            <span class="badge-pill badge-{{ app.status|lower }}">{{ app.status }}</span
+                            >
+                            <i class="bi bi-chevron-right u-grey400-fs075"></i>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <p class="u-fs0875-grey400">
+                        No applications yet.
+                      </p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal fade" id="editStudentModal{{ student.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        ✏️ Edit Student — {{ student.name }}
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('admin_edit_student', student_id=student.id) }}">
+                      <div class="modal-body">
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="form-label">Full Name</label
+                            ><input type="text" name="name" class="form-control" value="{{ student.name }}" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Email</label
+                            ><input type="email" name="email" class="form-control" value="{{ student.email }}" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Contact</label
+                            ><input type="text" name="contact" class="form-control" value="{{ student.contact or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Date of Birth</label
+                            ><input type="date" name="dob" class="form-control" value="{{ student.dob or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">College</label
+                            ><input type="text" name="college" class="form-control" value="{{ student.college or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Course / Degree</label>
+                            <select name="degree" class="form-select">
+                              <option value="">Select degree</option>
+                              {% if student.degree and student.degree not in
+                              degree_options %}
+                              <option value="{{ student.degree }}" selected>
+                                {{ student.degree }}
+                              </option>
+                              {% endif %} {% for deg in degree_options %}
+                              <option value="{{ deg }}" {% if student.degree == deg %}selected{% endif %}>
+                                {{ deg }}
+                              </option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Branch</label
+                            ><input type="text" name="branch" class="form-control" value="{{ student.branch or '' }}" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Year of Study</label>
+                            <select name="year_of_study" class="form-select">
+                              <option value="">Select year</option>
+                              {% for yr in ['1st Year','2nd Year','3rd Year','4th Year'] %}
+                              <option value="{{ yr }}" {% if student.year_of_study == yr %}selected{% endif %}>
+                                {{ yr }}
+                              </option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">CGPA / Percentage</label
+                            ><input type="text" name="cgpa" class="form-control" placeholder="e.g. 8.5 or 85%" value="{{ student.cgpa or '' }}" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Expected Graduation</label
+                            ><input type="month" name="graduation_year" class="form-control" value="{{ student.graduation_year or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">10th %</label
+                            ><input type="number" step="0.01" name="tenth_percent" class="form-control" value="{{ student.tenth_percent or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">12th %</label
+                            ><input type="number" step="0.01" name="twelfth_percent" class="form-control" value="{{ student.twelfth_percent or '' }}" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label">Skills</label
+                            ><input type="text" name="skills" class="form-control" value="{{ student.skills or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">LinkedIn</label
+                            ><input type="url" name="linkedin" class="form-control" value="{{ student.linkedin or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">GitHub</label
+                            ><input type="url" name="github" class="form-control" value="{{ student.github or '' }}" />
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                          Cancel
+                        </button>
+                        <button type="submit" class="btn-c btn-c-primary">
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="noStudentsMsg" class="u-hidden">
+          <div class="empty-state u-mt-1">
+            <i class="bi bi-search"></i>
+            <h5>No Results</h5>
+            <p>Try a different search.</p>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-person-x"></i>
+          <h5>No Students</h5>
+          <p>No students registered yet.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="content-section" id="companies-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-building"></i> Companies
+          </h1>
+        </div>
+        {% set approved_companies =
+        registered_companies|selectattr('approval_status','equalto','Approved')|list
+        %} {% if approved_companies %}
+        <div class="search-bar">
+          <div class="search-wrap">
+            <i class="bi bi-search"></i
+            ><input type="text" class="tbl-search" id="companySearch" placeholder="Search by company name, company ID, or industry…" />
+          </div>
+          <select class="tbl-filter" id="companyStatusFilter">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="blacklisted">Blacklisted</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl" id="companiesTbl">
+            <thead>
+              <tr>
+                <th>#ID</th>
+                <th>Company</th>
+                <th>Industry</th>
+                <th>HR Contact</th>
+                <th>Drives</th>
+                <th>Placed</th>
+                <th>Status</th>
+                <th class="u-text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="companiesTbody">
+              {% for company in approved_companies %} {% set c_selected_apps =
+              [] %} {% for drive in company.drives %}{% for app in
+              drive.applications %}{% if app.status == 'Placed' %}{% set _ =
+              c_selected_apps.append(app) %}{% endif %}{% endfor %}{% endfor %}
+              <tr class="company-row" data-search="{{ (company.id|string + ' ' + (company.company_id or '') + ' ' + company.company_name + ' ' + company.email + ' ' + (company.industry or ''))|lower }}" data-company-id="{{ (company.company_id or company.id|string)|lower }}" data-company-name="{{ (company.company_name or '')|lower }}" data-company-industry="{{ (company.industry or '')|lower }}" data-status="{{ 'active' if company.is_active else 'blacklisted' }}">
+                <td class="u-fw700-grey400">
+                  {{ company.company_id or ('#' ~ company.id) }}
+                </td>
+                <td>
+                  <div class="u-fw600">{{ company.company_name }}</div>
+                  <small class="u-text-grey400">{{ company.email }}</small
+                  >
+                </td>
+                <td style="font-size: 0.85rem">
+                  {{ company.industry or '—' }}
+                </td>
+                <td>
+                  <div style="font-size: 0.85rem; font-weight: 500">
+                    {{ company.hr_contact or '—' }}
+                  </div>
+                  <button class="btn-c-xs btn-c-outline btn-c btn-c-sm" style="margin-top: 3px" data-bs-toggle="modal" data-bs-target="#hrDetailModal{{ company.id }}">
+                    <i class="bi bi-person-badge"></i> HR Details
+                  </button>
+                </td>
+                <td style="font-weight: 700; color: var(--grey-600)">
+                  {{ company.drives|length }}
+                </td>
+                <td class="u-fw700-success">
+                  {{ c_selected_apps|length }}
+                </td>
+                <td>
+                  {% if company.is_active %}<span class="badge-pill badge-active"><i class="bi bi-check-circle"></i> Active</span
+                  >{% else %}<span class="badge-pill badge-blacklisted"><i class="bi bi-x-circle"></i> Blacklisted</span
+                  >{% endif %}
+                </td>
+                <td class="u-text-right">
+                  <div style=" display: flex; gap: 0.3rem; justify-content: flex-end; flex-wrap: wrap; ">
+                    <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#viewCompanyModal{{ company.id }}" title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn-c btn-c-warning btn-c-sm" data-bs-toggle="modal" data-bs-target="#editCompanyModal{{ company.id }}" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    {% if company.is_active %}
+                    <form method="POST" action="{{ url_for('blacklist_user', user_type='company', user_id=company.id) }}" class="u-m-0-inline">
+                      <button type="submit" class="btn-c btn-c-danger btn-c-sm" onclick="return confirm('Blacklist this company?');" title="Blacklist">
+                        <i class="bi bi-ban"></i>
+                      </button>
+                    </form>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('activate_user', user_type='company', user_id=company.id) }}" class="u-m-0-inline">
+                      <button type="submit" class="btn-c btn-c-success btn-c-sm" title="Activate">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin_delete_company', company_id=company.id) }}" class="u-m-0-inline">
+                      <button type="submit" class="btn-c btn-c-danger btn-c-sm" onclick="return confirm('Delete this company?');" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <div class="modal fade" id="hrDetailModal{{ company.id }}" tabindex="-1">
+                <div class="modal-dialog modal-sm">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        HR Details — {{ company.company_name }}
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="detail-item u-mb-075">
+                        <label>HR Name</label>
+                        <div class="dval">{{ company.hr_contact or '—' }}</div>
+                      </div>
+                      <div class="detail-item u-mb-075">
+                        <label>Designation</label>
+                        <div class="dval">
+                          {{ company.hr_designation or '—' }}
+                        </div>
+                      </div>
+                      <div class="detail-item u-mb-075">
+                        <label>Email</label>
+                        <div class="dval">{{ company.email }}</div>
+                      </div>
+                      {% if company.alt_email %}
+                      <div class="detail-item u-mb-075">
+                        <label>Alt Email</label>
+                        <div class="dval">{{ company.alt_email }}</div>
+                      </div>
+                      {% endif %}
+                      <div class="detail-item u-mb-075">
+                        <label>Mobile</label>
+                        <div class="dval">{{ company.mobile or '—' }}</div>
+                      </div>
+                      {% if company.office_number %}
+                      <div class="detail-item">
+                        <label>Office</label>
+                        <div class="dval">{{ company.office_number }}</div>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal fade" id="viewCompanyModal{{ company.id }}" tabindex="-1">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        🏢 {{ company.company_name }}
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                      <div class="modal-body">
+                        <div class="detail-section-title">
+                          <i class="bi bi-building"></i> Company Info
+                        </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>Company ID</label>
+                          <div class="dval" style="font-family: monospace">
+                            {{ company.company_id or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Company Name</label>
+                          <div class="dval">{{ company.company_name }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Industry</label>
+                          <div class="dval">{{ company.industry or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Company Size</label>
+                          <div class="dval">
+                            {{ company.company_size or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Location</label>
+                          <div class="dval">{{ company.location or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Website</label>
+                          <div class="dval">
+                            {% if company.website %}<a href="{{ company.website }}" target="_blank" class="u-text-accent">{{ company.website }}</a
+                            >{% else %}—{% endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Approval</label>
+                          <div class="dval">
+                            <span class="badge-pill badge-{{ company.approval_status|lower }}">{{ company.approval_status }}</span
+                            >
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Account Status</label>
+                          <div class="dval">
+                            {% if company.is_active %}<span class="badge-pill badge-active">Active</span
+                            >{% else %}<span class="badge-pill badge-blacklisted">Blacklisted</span
+                            >{% endif %}
+                          </div>
+                        </div>
+                        </div>
+                        <div class="detail-section-title">
+                          <i class="bi bi-person-badge"></i> HR / Contact Details
+                        </div>
+                        <div class="detail-grid">
+                          <div class="detail-item">
+                            <label>HR Name</label>
+                            <div class="dval">{{ company.hr_contact or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>HR Designation</label>
+                            <div class="dval">
+                              {{ company.hr_designation or '—' }}
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Primary Email</label>
+                            <div class="dval">{{ company.email or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Alt Email</label>
+                            <div class="dval">{{ company.alt_email or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Mobile</label>
+                            <div class="dval">{{ company.mobile or '—' }}</div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Office Number</label>
+                            <div class="dval">
+                              {{ company.office_number or '—' }}
+                            </div>
+                          </div>
+                        </div>
+                        {% if company.description %}
+                        <div style="margin-top: 0.9rem">
+                          <label class="form-label">Company Profile</label>
+                          <p style="font-size: 0.9rem; color: var(--grey-600); white-space: pre-line;">
+                            {{ company.description }}
+                          </p>
+                        </div>
+                        {% endif %}
+                        <div class="detail-section-title">
+                          <i class="bi bi-clock-history"></i> Registration Info
+                        </div>
+                        <div class="detail-grid">
+                          <div class="detail-item">
+                            <label>Registered On</label>
+                            <div class="dval">
+                              <span data-ist-dt="{{ company.created_at.isoformat() if company.created_at else '' }}" data-ist-format="datetime">{{ company.created_at.strftime('%d %b %Y, %I:%M %p') if company.created_at else '—' }}</span
+                              >
+                            </div>
+                          </div>
+                          <div class="detail-item">
+                            <label>Approval Status</label>
+                            <div class="dval">
+                              <span class="badge-pill badge-{{ company.approval_status|lower }}">{{ company.approval_status }}</span
+                              >
+                            </div>
+                          </div>
+                        </div>
+                        <div class="detail-section-title">
+                          <i class="bi bi-bar-chart"></i> Drive Summary ({{
+                          company.drives|length }} total)
+                      </div>
+                      {% if company.drives %}
+                      <div style=" display: flex; flex-direction: column; gap: 0.5rem; ">
+                        {% for drive in company.drives %} {% set d_apps =
+                        drive.applications|length %} {% set d_sel =
+                        drive.applications|selectattr('status','equalto','Placed')|list|length
+                        %}
+                        <div style=" display: flex; justify-content: space-between; align-items: center; background: var(--grey-50); padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid var(--grey-200); cursor: pointer; " title="View drive details" onclick="bootstrap.Modal.getInstance(document.getElementById('viewCompanyModal{{ company.id }}'))?.hide(); setTimeout(()=>showActivityDetail('drive','{{ drive.id }}'),180);"
+                        >
+                          <div>
+                            <div class="u-fw600-fs085">
+                              {{ drive.job_title }}
+                            </div>
+                            <div class="u-fs078-grey400">
+                              {{ drive.drive_id or ('#' ~ drive.id) }} · {{
+                              d_apps }} apps · {{ d_sel }} selected
+                            </div>
+                          </div>
+                          <div style=" display: flex; align-items: center; gap: 0.5rem; ">
+                            <span class="badge-pill badge-{{ drive.status|lower }}">{{ drive.status }}</span
+                            >
+                            <i class="bi bi-chevron-right u-grey400-fs075"></i>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <p class="u-fs0875-grey400">
+                        No drives created yet.
+                      </p>
+                      {% endif %}
+                      <div class="detail-section-title">
+                        <i class="bi bi-trophy"></i> Total Placed Students: {{
+                        c_selected_apps|length }}
+                      </div>
+                      {% if c_selected_apps %}
+                      <div style=" display: flex; flex-direction: column; gap: 0.5rem; ">
+                        {% for app in c_selected_apps %}
+                        <div style=" display: flex; justify-content: space-between; align-items: center; background: var(--grey-50); padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid var(--grey-200); cursor: pointer; " title="View placed application details" onclick="bootstrap.Modal.getInstance(document.getElementById('viewCompanyModal{{ company.id }}'))?.hide(); setTimeout(()=>showActivityDetail('app','{{ app.id }}'),180);"
+                        >
+                          <div>
+                            <div class="u-fw600-fs085">
+                              {{ app.student.name }}
+                            </div>
+                            <div class="u-fs078-grey400">
+                              {{ app.drive.job_title }} · {{ app.student.email
+                              }}
+                            </div>
+                          </div>
+                          <div style=" display: flex; align-items: center; gap: 0.5rem; ">
+                            <span class="badge-pill badge-selected">Placed</span
+                            >
+                            <i class="bi bi-chevron-right u-grey400-fs075"></i>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <p class="u-fs0875-grey400">
+                        No placed applications yet.
+                      </p>
+                      {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal fade" id="editCompanyModal{{ company.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        ✏️ Edit — {{ company.company_name }}
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('admin_edit_company', company_id=company.id) }}">
+                      <div class="modal-body">
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="form-label">Company Name</label
+                            ><input type="text" name="company_name" class="form-control" value="{{ company.company_name }}" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Email</label
+                            ><input type="email" name="email" class="form-control" value="{{ company.email }}" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Industry / Sector</label>
+                            <select name="industry" class="form-select">
+                              <option value="">Select industry</option>
+                              {% for ind in ['IT','Fintech','Manufacturing','Consulting','Banking','Healthcare','EdTech','Other'] %}
+                              <option value="{{ ind }}" {% if (company.industry or '') == ind %}selected{% endif %}>
+                                {{ ind }}
+                              </option>
+                              {% endfor %}
+                              {% if company.industry and company.industry not in ['IT','Fintech','Manufacturing','Consulting','Banking','Healthcare','EdTech','Other'] %}
+                              <option value="{{ company.industry }}" selected>
+                                {{ company.industry }}
+                              </option>
+                              {% endif %}
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Website</label
+                            ><input type="url" name="website" class="form-control" value="{{ company.website or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">HR Contact</label
+                            ><input type="text" name="hr_contact" class="form-control" value="{{ company.hr_contact or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">HR Designation</label
+                            ><input type="text" name="hr_designation" class="form-control" value="{{ company.hr_designation or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Mobile</label
+                            ><input type="text" name="mobile" class="form-control" maxlength="10" inputmode="numeric" value="{{ company.mobile or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Location</label
+                            ><input type="text" name="location" class="form-control" value="{{ company.location or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Company Size</label>
+                            <select name="company_size" class="form-select">
+                              <option value="">Select size</option>
+                              {% for size in ['1-50','51-200','201-1000','1000+'] %}
+                              <option value="{{ size }}" {% if (company.company_size or '') == size %}selected{% endif %}>
+                                {{ size }}{% if size == '1-50' %} employees{% elif size == '51-200' %} employees{% elif size == '201-1000' %} employees{% else %} employees{% endif %}
+                              </option>
+                              {% endfor %}
+                              {% if company.company_size and company.company_size not in ['1-50','51-200','201-1000','1000+'] %}
+                              <option value="{{ company.company_size }}" selected>
+                                {{ company.company_size }}
+                              </option>
+                              {% endif %}
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Alt Email</label
+                            ><input type="email" name="alt_email" class="form-control" value="{{ company.alt_email or '' }}" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label">Description</label
+                            ><textarea name="description" class="form-control" rows="3">
+{{ company.description or '' }}</textarea
+                            >
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                          Cancel</button
+                        ><button type="submit" class="btn-c btn-c-primary">
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="noCompaniesMsg" class="u-hidden">
+          <div class="empty-state u-mt-1">
+            <i class="bi bi-search"></i>
+            <h5>No Results</h5>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-building-x"></i>
+          <h5>No Approved Companies</h5>
+          <p>No approved companies available yet.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="content-section" id="drives-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-calendar-event"></i> Placement Drives
+          </h1>
+        </div>
+        {% set drives_visible = (ongoing_drives|selectattr('status','equalto','Approved')|list) + (ongoing_drives|selectattr('status','equalto','Closed')|list) %}
+        {% if drives_visible %}
+        <div class="search-bar">
+          <div class="search-wrap">
+            <i class="bi bi-search"></i
+            ><input type="text" class="tbl-search" id="drivesSearch" placeholder="Search by title, company, location…" />
+          </div>
+          <select class="tbl-filter" id="drivesStatusFilter">
+            <option value="">All Status</option>
+            <option value="Approved">Active</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl" id="drivesTbl">
+            <thead>
+              <tr>
+                <th>#ID</th>
+                <th>Job Title</th>
+                <th>Company</th>
+                <th>Status</th>
+                <th>Applications</th>
+                <th>Placed</th>
+                <th>Rejected</th>
+                <th>Deadline</th>
+                <th class="u-text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="drivesTbody">
+              {% for drive in drives_visible %} {% set d_sel =
+              drive.applications|selectattr('status','equalto','Placed')|list|length
+              %} {% set d_rej =
+              drive.applications|selectattr('status','equalto','Rejected')|list|length
+              %}
+              <tr class="drive-row" data-search="{{ ((drive.drive_id or drive.id|string) + ' ' + drive.job_title + ' ' + drive.company.company_name + ' ' + (drive.location or ''))|lower }}" data-status="{{ drive.status }}">
+                <td class="u-fw700-grey400">
+                  {{ drive.drive_id or ('#' ~ drive.id) }}
+                </td>
+                <td>
+                  <div class="u-fw600">{{ drive.job_title }}</div>
+                  {% if drive.location %}<small class="u-text-grey400">{{ drive.location }}</small
+                  >{% endif %}
+                </td>
+                <td>{{ drive.company.company_name }}</td>
+                <td>
+                  <span class="badge-pill badge-{{ drive.status|lower }}">{{ drive.status }}</span
+                  >
+                </td>
+                <td class="u-fw700-accent">
+                  {{ drive.applications|length }}
+                </td>
+                <td class="u-fw700-success">
+                  {{ d_sel }}
+                </td>
+                <td class="u-fw700-danger">
+                  {{ d_rej }}
+                </td>
+                <td class="u-fs082-grey400">
+                  {% if drive.application_deadline %}<span data-ist-dt="{{ drive.application_deadline.isoformat() }}" data-ist-format="date">{{ drive.application_deadline.strftime('%d %b %Y') }}</span
+                  >{% else %}—{% endif %}
+                </td>
+                <td class="u-text-right">
+                  <div class="student-actions drive-actions">
+                    <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#driveDetailModal{{ drive.id }}" title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn-c btn-c-warning btn-c-sm" data-bs-toggle="modal" data-bs-target="#editDriveModal{{ drive.id }}" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    {% if drive.status == 'Approved' %}<a href="{{ url_for('admin_close_drive', drive_id=drive.id) }}" class="btn-c btn-c-danger btn-c-sm" onclick="return confirm('Close this drive?');" title="Close"><i class="bi bi-x-circle"></i></a
+                    >{% endif %} {% if drive.status == 'Closed' %}<a href="{{ url_for('admin_reopen_drive', drive_id=drive.id) }}" class="btn-c btn-c-success btn-c-sm" onclick="return confirm('Reopen this drive?');" title="Reopen"><i class="bi bi-arrow-clockwise"></i></a
+                    >{% endif %}
+                  </div>
+                </td>
+              </tr>
+              <div class="modal fade" id="driveDetailModal{{ drive.id }}" tabindex="-1">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        📋 {{ drive.job_title }} · {{ drive.drive_id or ('#' ~
+                        drive.id) }}
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>Drive ID</label>
+                          <div class="dval">
+                            {{ drive.drive_id or ('#' ~ drive.id) }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Company</label>
+                          <div class="dval">
+                            {{ drive.company.company_name }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Status</label>
+                          <div class="dval">
+                            <span class="badge-pill badge-{{ drive.status|lower }}">{{ drive.status }}</span
+                            >
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Package</label>
+                          <div class="dval" style="color: var(--success); font-weight: 700">
+                            {% if drive.salary %}₹{{ "{:,}".format(drive.salary)
+                            }} LPA{% else %}Not disclosed{% endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Location</label>
+                          <div class="dval">{{ drive.location or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Job Type</label>
+                          <div class="dval">{{ drive.job_type or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Work Mode</label>
+                          <div class="dval">{{ drive.work_mode or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Experience</label>
+                          <div class="dval">
+                            {{ drive.experience_level or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Vacancies</label>
+                          <div class="dval">{{ drive.vacancies or '—' }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Deadline</label>
+                          <div class="dval">
+                            {% if drive.application_deadline %}<span data-ist-dt="{{ drive.application_deadline.isoformat() }}" data-ist-format="date">{{ drive.application_deadline.strftime('%d %b %Y') }}</span
+                            >{% else %}—{% endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Student Publish</label>
+                          <div class="dval">
+                            {% if drive.publish_at_ist %}<span data-ist-dt="{{ drive.publish_at_ist.isoformat() }}" data-ist-format="datetime">{{ drive.publish_at_ist.strftime('%d %b %Y, %I:%M
+                              %p') }}</span
+                            >{% else %}Immediate{% endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Created</label>
+                          <div class="dval">
+                            <span data-ist-dt="{{ drive.created_at.isoformat() if drive.created_at else '' }}" data-ist-format="date">{{ drive.created_at.strftime('%d %b %Y') if
+                              drive.created_at else '—' }}</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                      <div class="u-mt-1">
+                        <label class="form-label">Eligibility</label>
+                        <p class="u-fs09">
+                          {{ drive.eligibility_criteria or drive.eligibility or
+                          '—' }}
+                        </p>
+                      </div>
+                      <div class="u-mt-075">
+                        <label class="form-label">Required Skills</label>
+                        <p class="u-fs09">
+                          {{ drive.required_skills or '—' }}
+                        </p>
+                      </div>
+                      <div class="u-mt-075">
+                        <label class="form-label">Description</label>
+                        <p style="font-size: 0.9rem; white-space: pre-line">
+                          {{ drive.job_description }}
+                        </p>
+                      </div>
+                      {% if drive.selection_process %}
+                      <div class="u-mt-075">
+                        <label class="form-label">Selection Process</label>
+                        <p class="u-fs09">
+                          {{ drive.selection_process }}
+                        </p>
+                      </div>
+                      {% endif %}
+                      <hr style="margin: 1.25rem 0" />
+                      <strong style="font-size: 0.875rem">Application Breakdown</strong
+                      >
+                      {% set d_applied =
+                      drive.applications|selectattr('status','equalto','Applied')|list|length
+                      %} {% set d_short2 =
+                      drive.applications|selectattr('status','equalto','Shortlisted')|list|length
+                      %} {% set d_intv2 =
+                      drive.applications|selectattr('status','equalto','Interview')|list|length
+                      %} {% set d_sel2 =
+                      drive.applications|selectattr('status','equalto','Placed')|list|length
+                      %} {% set d_rej2 =
+                      drive.applications|selectattr('status','equalto','Rejected')|list|length
+                      %}
+                      <div style=" display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-top: 0.75rem; ">
+                        {% for lbl,cnt,col in
+                        [('Applied',d_applied,'#06b6d4'),('Shortlisted',d_short2,'#f59e0b'),('Interview',d_intv2,'#8b5cf6'),('Placed',d_sel2,'#10b981'),('Rejected',d_rej2,'#ef4444')]
+                        %}
+                        <div style="text-align:center;padding:0.85rem;background:var(--grey-50);border-radius:10px;border-top:3px solid {{ col }};">
+                          <div style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:{{ col }};">
+                            {{ cnt }}
+                          </div>
+                          <div style=" font-size: 0.72rem; color: var(--grey-400); text-transform: uppercase; font-weight: 600; ">
+                            {{ lbl }}
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% if drive.applications %}
+                      <div style="margin-top: 1.25rem">
+                        <strong style="font-size: 0.875rem">Applicants</strong>
+                        <div style=" display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.6rem; max-height: 200px; overflow-y: auto; ">
+                          {% for app in drive.applications %}
+                          <div style=" display: flex; justify-content: space-between; align-items: center; background: var(--grey-50); padding: 0.5rem 0.75rem; border-radius: 7px; cursor: pointer; border: 1px solid var(--grey-200); " title="View application details" onclick="bootstrap.Modal.getInstance(document.getElementById('driveDetailModal{{ drive.id }}'))?.hide(); setTimeout(()=>showActivityDetail('app','{{ app.id }}'),180);"
+                          >
+                            <div>
+                              <div style="font-size: 0.85rem; font-weight: 600">
+                                {{ app.student.name }}
+                              </div>
+                              <div style=" font-size: 0.75rem; color: var(--grey-400); ">
+                                {{ app.student.email }}
+                              </div>
+                            </div>
+                            <div style=" display: flex; align-items: center; gap: 0.5rem; ">
+                              <span class="badge-pill badge-{{ app.status|lower }}">{{ app.status }}</span
+                              >
+                              <i class="bi bi-chevron-right" style=" color: var(--grey-400); font-size: 0.75rem; "></i>
+                            </div>
+                          </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal fade" id="editDriveModal{{ drive.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        ✏️ Edit Drive — {{ drive.job_title }} · {{
+                        drive.drive_id or ('#' ~ drive.id) }}
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('edit_drive', drive_id=drive.id) }}" onsubmit="return validateAudienceForm(this, true, 'editAudienceError{{ drive.id }}')">
+                      {% set existing_target_degrees = ((drive.target_degrees or
+                      '')|replace(', ', ',')).split(',') %} {% set
+                      existing_target_years = ((drive.target_years or
+                      '')|replace(', ', ',')).split(',') %}
+                      <div class="modal-body">
+                        <div class="row g-3">
+                          <div class="col-12">
+                            <label class="form-label">Job Title</label
+                            ><input type="text" name="job_title" class="form-control" value="{{ drive.job_title }}" minlength="3" maxlength="150" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Package (₹ LPA)</label
+                            ><input type="number" name="salary" class="form-control" value="{{ drive.salary or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Location</label
+                            ><input type="text" name="location" class="form-control" value="{{ drive.location or '' }}" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Job Type</label>
+                            <select name="job_type" class="form-select" required>
+                              <option value="">- Select Type -</option>
+                              <option value="Full-time" {% if drive.job_type == 'Full-time' %}selected{% endif %}>Full-time</option>
+                              <option value="Internship" {% if drive.job_type == 'Internship' %}selected{% endif %}>Internship</option>
+                              <option value="Contract" {% if drive.job_type == 'Contract' %}selected{% endif %}>Contract</option>
+                              <option value="Part-time" {% if drive.job_type == 'Part-time' %}selected{% endif %}>Part-time</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Work Mode</label>
+                            <select name="work_mode" class="form-select">
+                              <option value="">- Select Mode -</option>
+                              <option value="On-site" {% if drive.work_mode == 'On-site' %}selected{% endif %}>On-site</option>
+                              <option value="Remote" {% if drive.work_mode == 'Remote' %}selected{% endif %}>Remote</option>
+                              <option value="Hybrid" {% if drive.work_mode == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Experience Level</label
+                            >
+                            <select name="experience_level" class="form-select">
+                              <option value="">- Select Level -</option>
+                              <option value="Fresher (0 years)" {% if drive.experience_level == 'Fresher (0 years)' %}selected{% endif %}>Fresher (0 years)</option>
+                              <option value="Junior (0–2 years)" {% if drive.experience_level == 'Junior (0–2 years)' %}selected{% endif %}>Junior (0–2 years)</option>
+                              <option value="Mid (2–5 years)" {% if drive.experience_level == 'Mid (2–5 years)' %}selected{% endif %}>Mid (2–5 years)</option>
+                              <option value="Senior (5+ years)" {% if drive.experience_level == 'Senior (5+ years)' %}selected{% endif %}>Senior (5+ years)</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Vacancies</label
+                            ><input type="number" name="vacancies" class="form-control" min="1" value="{{ drive.vacancies or '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Deadline</label
+                            ><input type="date" name="deadline" class="form-control" value="{{ drive.application_deadline|string if drive.application_deadline else '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Deadline Time</label
+                            ><input type="time" name="deadline_time" class="form-control" value="{{ drive.application_deadline_time.strftime('%H:%M') if drive.application_deadline_time else '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Publish Date</label
+                            ><input type="date" name="publish_date" class="form-control" value="{{ drive.publish_date|string if drive.publish_date else '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Publish Time</label
+                            ><input type="time" name="publish_time" class="form-control" value="{{ drive.publish_time.strftime('%H:%M') if drive.publish_time else '' }}" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Eligibility</label
+                            ><input type="text" name="eligibility" class="form-control" value="{{ drive.eligibility_criteria or drive.eligibility or '' }}" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label">Required Skills</label
+                            ><input type="text" name="required_skills" class="form-control" value="{{ drive.required_skills or '' }}" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label">Job Description</label
+                            ><textarea name="job_description" class="form-control" rows="4" minlength="20" required>
+{{ drive.job_description }}</textarea
+                            >
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label">Selection Process</label
+                            ><input type="text" name="selection_process" class="form-control" value="{{ drive.selection_process or '' }}" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label">Additional Notes</label
+                            ><textarea name="additional_notes" class="form-control" rows="2">
+{{ drive.additional_notes or '' }}</textarea
+                            >
+                          </div>
+                          <div class="col-12">
+                            <hr style="margin: 0.5rem 0 0.2rem" />
+                          </div>
+                          <div class="col-12">
+                            <div class="detail-section-title">
+                              <i class="bi bi-people-fill"></i> Target Audience
+                              Update
+                            </div>
+                          </div>
+                          <div class="col-12">
+                            <div class="audience-panel" style="background: #f8fafc; border-color: #dbeafe">
+                              <div class="audience-grid">
+                                <div class="audience-group" style="border-color: #dbeafe">
+                                  <div class="audience-group-label u-text-accent">
+                                    Target Degrees
+                                  </div>
+                                  <div class="audience-checklist">
+                                    {% for deg in target_degrees|sort %}
+                                    <label class="audience-item" style="border-color: #e5e7eb">
+                                      <input type="checkbox" name="target_degrees" value="{{ deg }}" {% if deg in existing_target_degrees %}checked{% endif %} />
+                                      <span>{{ deg }}</span>
+                                    </label>
+                                    {% endfor %}
+                                  </div>
+                                </div>
+                                <div class="audience-group" style="border-color: #dbeafe">
+                                  <div class="audience-group-label u-text-accent">
+                                    Target Year Of Study
+                                  </div>
+                                  <div class="audience-checklist">
+                                    {% for yr in target_years|sort %}
+                                    <label class="audience-item" style="border-color: #e5e7eb">
+                                      <input type="checkbox" name="target_years" value="{{ yr }}" {% if yr in existing_target_years %}checked{% endif %} />
+                                      <span>{{ yr }}</span>
+                                    </label>
+                                    {% endfor %}
+                                  </div>
+                                </div>
+                              </div>
+                              <div id="editAudienceError{{ drive.id }}" class="audience-error">
+                                Select degrees and years, or choose "Allow all
+                                students".
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-12">
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" value="1" id="allowAllAudience{{ drive.id }}" name="allow_all_audience" {% if not drive.target_degrees and not drive.target_years %}checked{% endif %} />
+                              <label class="form-check-label" for="allowAllAudience{{ drive.id }}">
+                                Allow all students (remove audience targeting
+                                restrictions)
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+                          Cancel</button
+                        ><button type="submit" class="btn-c btn-c-primary">
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="noDrivesMsg" class="u-hidden">
+          <div class="empty-state u-mt-1">
+            <i class="bi bi-search"></i>
+            <h5>No Results</h5>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-calendar-x"></i>
+          <h5>No Drives</h5>
+          <p>No placement drives yet.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="content-section" id="applications-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-file-earmark-text"></i> All Applications
+          </h1>
+        </div>
+        {% if student_applications %}
+        <div class="search-bar">
+          <div class="search-wrap">
+            <i class="bi bi-search"></i
+            ><input type="text" class="tbl-search" id="appsSearch" placeholder="Search by student, drive, company…" />
+          </div>
+          <select class="tbl-filter" id="appsStatusFilter">
+            <option value="">All Status</option>
+            <option value="Applied">Applied</option>
+            <option value="Shortlisted">Shortlisted</option>
+            <option value="Interview">Interview</option>
+            <option value="Placed">Placed</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl" id="appsTbl">
+            <thead>
+              <tr>
+                <th>#ID</th>
+                <th>Student</th>
+                <th>Drive</th>
+                <th>Company</th>
+                <th>Applied On</th>
+                <th>Status</th>
+                <th>Company Remark</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="appsTbody">
+              {% for app in student_applications %}
+              <tr class="app-row" data-search="{{ ((app.application_code or app.id|string) + ' ' + app.student.name + ' ' + app.drive.job_title + ' ' + app.drive.company.company_name)|lower }}" data-status="{{ app.status }}">
+                <td class="u-fw700-grey400">
+                  {{ app.application_code or ('#' ~ app.id) }}
+                </td>
+                <td>
+                  <div class="u-fw600">{{ app.student.name }}</div>
+                  <small class="u-text-grey400">{{ app.student.email }}</small
+                  >
+                </td>
+                <td style="font-weight: 600; font-size: 0.875rem">
+                  {{ app.drive.job_title }}
+                </td>
+                <td style="font-size: 0.875rem; color: var(--grey-600)">
+                  {{ app.drive.company.company_name }}
+                </td>
+                <td class="u-fs082-grey400">
+                  <span data-ist-dt="{{ app.application_date.isoformat() if app.application_date else '' }}" data-ist-format="date">{{ app.application_date.strftime('%d %b %Y') }}</span
+                  >
+                </td>
+                <td>
+                  <span class="badge-pill badge-{{ app.status|lower }}">
+                    {% if app.status=='Placed' %}<i class="bi bi-trophy-fill"></i>
+                    {% elif app.status=='Shortlisted' %}<i class="bi bi-star-fill"></i>
+                    {% elif app.status=='Interview' %}<i class="bi bi-camera-video-fill"></i>
+                    {% elif app.status=='Rejected' %}<i class="bi bi-x-circle-fill"></i>
+                    {% else %}<i class="bi bi-hourglass-split"></i>{% endif %}
+                    {{ app.status }}
+                  </span>
+                </td>
+                <td style=" font-size: 0.82rem; color: var(--grey-400); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; " title="{{ app.remark or '' }}">
+                  {{ app.remark or '—' }}
+                </td>
+                <td>
+                  <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#appDetailModal{{ app.id }}">
+                    <i class="bi bi-eye"></i>View
+                  </button>
+                </td>
+              </tr>
+              <div class="modal fade" id="appDetailModal{{ app.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header-dark">
+                      <div class="modal-title-custom">
+                        Application {{ app.application_code or ('#' ~ app.id) }}
+                        Details
+                      </div>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="detail-section-title">
+                        <i class="bi bi-person"></i> Student
+                      </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>Name</label>
+                          <div class="dval">{{ app.student.name }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Email</label>
+                          <div class="dval">{{ app.student.email }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>College</label>
+                          <div class="dval">
+                            {{ app.student.college or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Course</label>
+                          <div class="dval">
+                            {{ app.student.degree or '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>CGPA</label>
+                          <div class="dval">
+                            {{ "%.2f"|format(app.student.cgpa) if
+                            app.student.cgpa else '—' }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Skills</label>
+                          <div class="dval">
+                            {{ app.student.skills or '—' }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="detail-section-title">
+                        <i class="bi bi-briefcase"></i> Drive
+                      </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>Job Title</label>
+                          <div class="dval">{{ app.drive.job_title }}</div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Company</label>
+                          <div class="dval">
+                            {{ app.drive.company.company_name }}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Package</label>
+                          <div class="dval u-text-success">
+                            {% if app.drive.salary %}₹{{
+                            "{:,}".format(app.drive.salary) }} LPA{% else %}—{%
+                            endif %}
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Location</label>
+                          <div class="dval">
+                            {{ app.drive.location or '—' }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="detail-section-title">
+                        <i class="bi bi-info-circle"></i> Application Status
+                      </div>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <label>Applied On</label>
+                          <div class="dval">
+                            <span data-ist-dt="{{ app.application_date.isoformat() if app.application_date else '' }}" data-ist-format="datetime">{{ app.application_date.strftime('%d %b %Y, %I:%M
+                              %p') }}</span
+                            >
+                          </div>
+                        </div>
+                        <div class="detail-item">
+                          <label>Current Status</label>
+                          <div class="dval">
+                            <span class="badge-pill badge-{{ app.status|lower }}">{{ app.status }}</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                      {% if app.remark %}
+                      <div style=" margin-top: 1rem; background: var(--grey-50); padding: 1rem; border-radius: 10px; border-left: 4px solid var(--warning); ">
+                        <label class="form-label">Company Remark</label>
+                        <p style=" font-size: 0.9rem; color: var(--grey-700); margin: 0; ">
+                          {{ app.remark }}
+                        </p>
+                      </div>
+                      {% endif %} {% if app.student.resume_url %}
+                      <div class="u-mt-1">
+                        <button type="button" class="btn-c btn-c-info btn-c-sm" onclick='openResumePreview({{ ("/static/" ~ app.student.resume_url)|tojson }}, {{ (app.student.name ~ " Resume")|tojson }})'>
+                          <i class="bi bi-file-earmark-pdf"></i> View Student
+                          Resume
+                        </button>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="noAppsMsg" class="u-hidden">
+          <div class="empty-state u-mt-1">
+            <i class="bi bi-search"></i>
+            <h5>No Results</h5>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-inbox"></i>
+          <h5>No Applications</h5>
+          <p>No applications submitted yet.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="content-section" id="analytics-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-bar-chart-fill"></i> Placement Analytics
+          </h1>
+        </div>
+        {% set ans =
+        namespace(applied=0,shortlisted=0,interview=0,selected=0,rejected=0) %}
+        {% for app in student_applications %} {% if app.status=='Applied' %}{%
+        set ans.applied=ans.applied+1 %} {% elif app.status=='Shortlisted' %}{%
+        set ans.shortlisted=ans.shortlisted+1 %} {% elif app.status=='Interview'
+        %}{% set ans.interview=ans.interview+1 %} {% elif app.status=='Placed'
+        %}{% set ans.selected=ans.selected+1 %} {% elif app.status=='Rejected'
+        %}{% set ans.rejected=ans.rejected+1 %} {% endif %} {% endfor %} {% set
+        total_apps = apps_count %} {% set placement_rate_a = ((ns.placed /
+        students_count) * 100)|round(1) if students_count > 0 else 0 %}
+        <script>
+          window._adminAnalytics = {
+              statusDist:{applied:{{ ans.applied }},shortlisted:{{ ans.shortlisted }},interview:{{ ans.interview }},selected:{{ ans.selected }},rejected:{{ ans.rejected }}},
+              totalApps:{{ apps_count }},totalStudents:{{ students_count }},totalDrives:{{ drives_count }},placed:{{ ns.placed }},
+              placementRate:{{ placement_rate_a }},
+              drives:[{% for drive in ongoing_drives %}{"label":{{ drive.job_title|tojson }},"company":{{ drive.company.company_name|tojson }},"apps":{{ drive.applications|length }},"shortlisted":{{ drive.applications|selectattr('status','equalto','Shortlisted')|list|length }},"interview":{{ drive.applications|selectattr('status','equalto','Interview')|list|length }},"selected":{{ drive.applications|selectattr('status','equalto','Placed')|list|length }},"rejected":{{ drive.applications|selectattr('status','equalto','Rejected')|list|length }}}{% if not loop.last %},{% endif %}{% endfor %}],
+              companies:[{% for company in registered_companies %}{% set c_apps = company.drives|map(attribute='applications')|sum(start=[]) %}{"label":{{ company.company_name|tojson }},"drives":{{ company.drives|length }},"placed":{{ c_apps|selectattr('status','equalto','Placed')|list|length }},"rejected":{{ c_apps|selectattr('status','equalto','Rejected')|list|length }}}{% if not loop.last %},{% endif %}{% endfor %}],
+              selectedDates:[{% for app in student_applications if app.status=='Placed' and app.application_date %}{{ app.application_date.isoformat()|tojson }}{% if not loop.last %},{% endif %}{% endfor %}]
+          };
+        </script>
+        <div class="analytics-kpi-scroll">
+          <div class="analytics-kpi-row">
+            {% for lbl,val,col in [ ('Total Job Postings', drives_count,
+            '#06b6d4'), ('Total Applications', apps_count, '#8b5cf6'),
+            ('Shortlisted', ans.shortlisted, '#f59e0b'), ('Interview',
+            ans.interview, '#7c3aed'), ('Placed', ans.selected, '#10b981'),
+            ('Rejected', ans.rejected, '#ef4444') ] %}
+            <div class="kpi-card" style="border-top-color:{{ col }};">
+              <div class="kpi-val" style="color:{{ col }};">{{ val }}</div>
+              <div class="kpi-lbl">{{ lbl }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="chart-row">
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-title">
+                <i class="bi bi-pie-chart-fill"></i> Application Status
+                Distribution
+              </div>
+            </div>
+            <div class="chart-canvas-wrap">
+              <p class="analytics-note">
+                Total applications: <strong>{{ apps_count }}</strong>. Use this
+                split to understand pipeline health and identify where
+                candidates are dropping off.
+              </p>
+              {% if apps_count > 0 %}
+              <div style="max-width: 210px; margin: 0 auto">
+                <canvas id="adminStatusDonut" height="210"></canvas>
+              </div>
+              <div style=" display: flex; flex-wrap: wrap; gap: 0.6rem 1.25rem; margin-top: 1rem; ">
+                {% for lbl,cnt,col in
+                [('Applied',ans.applied,'#06b6d4'),('Shortlisted',ans.shortlisted,'#f59e0b'),('Interview',ans.interview,'#8b5cf6'),('Placed',ans.selected,'#10b981'),('Rejected',ans.rejected,'#ef4444')]
+                %}
+                <div style="display: flex; align-items: center; gap: 0.4rem">
+                  <div style="width:10px;height:10px;border-radius:3px;background:{{ col }};flex-shrink:0;"></div>
+                  <span style="font-size: 0.8rem; color: var(--grey-600)">{{ lbl }}</span
+                  ><span style=" font-weight: 700; font-size: 0.88rem; color: var(--grey-700); margin-left: 0.3rem; ">{{ cnt }}</span
+                  >
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div style=" text-align: center; padding: 2.5rem; color: var(--grey-400); ">
+                No data yet
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-title">
+                <i class="bi bi-bar-chart-fill"></i> Applications per Drive
+              </div>
+            </div>
+            <div class="chart-canvas-wrap">
+              <p class="analytics-note">
+                Compares total applications and stage outcomes for each drive.
+                Scroll to review every drive and spot high/low performing roles.
+              </p>
+              {% if ongoing_drives %}
+              <div class="chart-scroll-wrap">
+                <div class="chart-scroll-inner" id="adminDriveBarWrap">
+                  <canvas id="adminDriveBar" height="260"></canvas>
+                </div>
+              </div>
+              {% else %}
+              <div style=" text-align: center; padding: 2.5rem; color: var(--grey-400); ">
+                No drives yet
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% if registered_companies %}
+        <div class="card mt-3">
+          <div class="card-hdr">
+            <div class="card-title">
+              <i class="bi bi-building-fill"></i> Drives & Placements per
+              Company
+            </div>
+          </div>
+          <div class="chart-canvas-wrap">
+            <p class="analytics-note">
+              Shows each company's drive activity, successful placements, and
+              rejected applications to benchmark hiring quality by company.
+            </p>
+            <div class="chart-scroll-wrap">
+              <div class="chart-scroll-inner" id="adminCompanyBarWrap">
+                <canvas id="adminCompanyBar" height="220"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        <div class="card mt-3">
+          <div class="card-hdr">
+            <div class="card-title">
+              <i class="bi bi-graph-up"></i> Placement Trend (Monthly)
+            </div>
+          </div>
+          <div class="chart-canvas-wrap">
+            <p class="analytics-note">
+              Tracks monthly placement movement to quickly detect growth or
+              decline in hiring outcomes.
+            </p>
+            <div style=" font-size: 0.76rem; font-weight: 700; color: var(--grey-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.45rem; ">
+              Monthly Placement Trend
+            </div>
+            <div id="placementTrendMonthlyWrap">
+              <canvas id="placementTrendMonthly"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="content-section" id="history-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-archive"></i> Historical Data
+          </h1>
+          <div class="u-fs082-grey400">
+            Use tabs below for filtered, detailed historical exports.
+          </div>
+        </div>
+        {% set hs_active =
+        history_students|selectattr('is_active','equalto',True)|list|length %}
+        {% set hs_blacklisted =
+        history_students|selectattr('is_active','equalto',False)|list|length %}
+        {% set hc_pending =
+        history_companies|selectattr('is_active','equalto',True)|selectattr('approval_status','equalto','Pending')|list|length
+        %} {% set hc_rejected =
+        history_companies|selectattr('is_active','equalto',True)|selectattr('approval_status','equalto','Rejected')|list|length
+        %} {% set hc_approved =
+        history_companies|selectattr('is_active','equalto',True)|selectattr('approval_status','equalto','Approved')|list|length
+        %} {% set hc_blacklisted =
+        history_companies|selectattr('is_active','equalto',False)|list|length %}
+        {% set hc_deleted = deleted_companies_count %} {% set hd_pending =
+        ongoing_drives|selectattr('status','equalto','Pending')|list|length %}
+        {% set hd_approved =
+        ongoing_drives|selectattr('status','equalto','Approved')|list|length %}
+        {% set hd_closed =
+        ongoing_drives|selectattr('status','equalto','Closed')|list|length %} {%
+        set hd_rejected =
+        ongoing_drives|selectattr('status','equalto','Rejected')|list|length %}
+        {% set ha_applied =
+        student_applications|selectattr('status','equalto','Applied')|list|length
+        %} {% set ha_short =
+        student_applications|selectattr('status','equalto','Shortlisted')|list|length
+        %} {% set ha_int =
+        student_applications|selectattr('status','equalto','Interview')|list|length
+        %} {% set ha_sel =
+        student_applications|selectattr('status','equalto','Placed')|list|length
+        %} {% set ha_rej =
+        student_applications|selectattr('status','equalto','Rejected')|list|length
+        %} {% set hs_total = (history_students|length) +
+        (deleted_students_history|length) %} {% set hc_total =
+        (history_companies|length) + (deleted_companies_history|length) %}
+        <div class="pending-tabs u-mb-1">
+          <button class="pending-tab-btn active" id="htab-students" onclick="switchHistoryTab('students')">
+            <i class="bi bi-people me-1"></i> Students
+          </button>
+          <button class="pending-tab-btn" id="htab-companies" onclick="switchHistoryTab('companies')">
+            <i class="bi bi-building me-1"></i> Companies
+          </button>
+          <button class="pending-tab-btn" id="htab-drives" onclick="switchHistoryTab('drives')">
+            <i class="bi bi-calendar-event me-1"></i> Drives
+          </button>
+          <button class="pending-tab-btn" id="htab-applications" onclick="switchHistoryTab('applications')">
+            <i class="bi bi-file-earmark-text me-1"></i> Applications
+          </button>
+        </div>
+        <div class="pending-pane active" id="history-pane-students">
+          <div class="stats-grid u-mb-1">
+            {% for lbl,val,col,icon in
+            [('Total',hs_total,'info','bi-people-fill'),('Active',hs_active,'success','bi-check-circle-fill'),('Blacklisted',hs_blacklisted,'danger','bi-ban'),('Deleted',deleted_students_count,'warning','bi-trash-fill')]
+            %}
+            <div class="stat-card c-{{ col }}">
+              <div class="stat-card-hdr">
+                <div>
+                  <div class="stat-val" style="color:var(--{{ col }});">
+                    {{ val }}
+                  </div>
+                  <div class="stat-lbl">{{ lbl }}</div>
+                </div>
+                <div class="stat-icon {{ col }}">
+                  <i class="bi {{ icon }}"></i>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-title">
+                <i class="bi bi-people"></i> Student History
+              </div>
+            </div>
+            <div class="history-toolbar">
+              <div class="search-wrap">
+                <i class="bi bi-search"></i
+                ><input type="text" class="tbl-search" id="historyStudentsSearch" placeholder="Search by ID, name, email, degree, college..." />
+              </div>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" data-bs-toggle="modal" data-bs-target="#historyStudentFilterModal">
+                <i class="bi bi-funnel"></i> Filters
+              </button>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" onclick="clearHistoryStudentsFilters()">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
+              <button class="btn-c btn-c-primary btn-c-sm" type="button" onclick="applyStudentHistoryFilters()">
+                Search
+              </button>
+              <span class="history-count-pill" id="historyStudentsCount">{{ hs_total }} shown</span
+              >
+            </div>
+            <div class="table-wrap u-no-radius-shadow">
+              <table class="tbl" id="historyStudentsTbl">
+                <thead>
+                  <tr>
+                    <th>#ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>College</th>
+                    <th>Course</th>
+                    <th>Year of Study</th>
+                    <th>Passing Out Year</th>
+                    <th>Status</th>
+                    <th>Apps</th>
+                    <th>Date</th>
+                    <th class="u-text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for s in history_students %}
+                  <tr class="hist-student-row" data-search="{{ ((s.student_id or s.id|string) + ' ' + s.name + ' ' + s.email + ' ' + (s.college or '') + ' ' + (s.degree or ''))|lower }}" data-status="{{ 'active' if s.is_active else 'blacklisted' }}" data-course="{{ (s.degree or '')|lower }}" data-study-year="{{ (s.year_of_study or '')|lower }}" data-passing-year="{{ (s.graduation_year or '')|lower }}" data-date="{{ s.created_at.strftime('%Y-%m-%d') if s.created_at else '' }}">
+                    <td class="u-fw700-grey400">
+                      {{ s.student_id or ('#' ~ s.id) }}
+                    </td>
+                    <td class="u-fw600">{{ s.name }}</td>
+                    <td class="u-fs082-grey500">
+                      {{ s.email }}
+                    </td>
+                    <td>{{ s.college or '—' }}</td>
+                    <td>{{ s.degree or '—' }}</td>
+                    <td>{{ s.year_of_study or '—' }}</td>
+                    <td>{{ s.graduation_year or '—' }}</td>
+                    <td>
+                      {% if s.is_active %}<span class="badge-pill badge-active">Active</span
+                      >{% else %}<span class="badge-pill badge-blacklisted">Blacklisted</span
+                      >{% endif %}
+                    </td>
+                    <td class="u-fw700-accent">
+                      {{ s.applications|length }}
+                    </td>
+                    <td class="u-fs082-grey400">
+                      <span data-ist-dt="{{ s.created_at.isoformat() if s.created_at else '' }}" data-ist-format="date">{{ s.created_at.strftime('%d %b %Y') if s.created_at
+                        else '—' }}</span
+                      >
+                    </td>
+                    <td class="u-text-right">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="showActivityDetail('student','{{ s.id }}')">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %} {% for d in deleted_students_history %}
+                  <tr class="hist-student-row" data-search="{{ ((d.student_id or d.original_student_pk|string) + ' ' + (d.name or '') + ' ' + (d.email or '') + ' ' + (d.college or '') + ' ' + (d.degree or ''))|lower }}" data-status="deleted" data-course="{{ (d.degree or '')|lower }}" data-study-year="" data-passing-year="" data-date="{{ d.deleted_at.strftime('%Y-%m-%d') if d.deleted_at else '' }}">
+                    <td class="u-fw700-grey400">
+                      {{ d.student_id or ('#' ~ d.original_student_pk) }}
+                    </td>
+                    <td class="u-fw600">{{ d.name or '—' }}</td>
+                    <td class="u-fs082-grey500">
+                      {{ d.email or '—' }}
+                    </td>
+                    <td>{{ d.college or '—' }}</td>
+                    <td>{{ d.degree or '—' }}</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>
+                      <span class="badge-pill badge-deleted">Deleted</span>
+                    </td>
+                    <td class="u-fw700-grey400">0</td>
+                    <td class="u-fs082-grey400">
+                      <span data-ist-dt="{{ d.deleted_at.isoformat() if d.deleted_at else '' }}" data-ist-format="datetime">{{ d.deleted_at.strftime('%d %b %Y, %I:%M %p') if
+                        d.deleted_at else '—' }}</span
+                      >
+                    </td>
+                    <td class="u-text-right">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="openDeletedStudentHistoryDetail(this)" data-student-id="{{ d.student_id or ('#' ~ d.original_student_pk) }}" data-name="{{ d.name or '' }}" data-email="{{ d.email or '' }}" data-college="{{ d.college or '' }}" data-course="{{ d.degree or '' }}" data-deleted-on="{{ d.deleted_at.strftime('%d %b %Y, %I:%M %p') if d.deleted_at else '—' }}" data-deleted-by="{{ d.deleted_by_admin.email if d.deleted_by_admin else 'Admin' }}">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="pending-pane" id="history-pane-companies">
+          <div class="stats-grid u-mb-1">
+            {% for lbl,val,col,icon in
+            [('Total',hc_total,'info','bi-building-fill'),('Approved',hc_approved,'success','bi-check-circle-fill'),('Pending',hc_pending,'warning','bi-hourglass-split'),('Rejected',hc_rejected,'danger','bi-x-circle-fill'),('Blacklisted',hc_blacklisted,'danger','bi-ban'),('Deleted',hc_deleted,'secondary','bi-trash')]
+            %}
+            <div class="stat-card c-{{ col }}">
+              <div class="stat-card-hdr">
+                <div>
+                  <div class="stat-val" style="color:var(--{{ col }});">
+                    {{ val }}
+                  </div>
+                  <div class="stat-lbl">{{ lbl }}</div>
+                </div>
+                <div class="stat-icon {{ col }}">
+                  <i class="bi {{ icon }}"></i>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-title">
+                <i class="bi bi-building"></i> Company History
+              </div>
+            </div>
+            <div class="history-toolbar">
+              <div class="search-wrap">
+                <i class="bi bi-search"></i
+                ><input type="text" class="tbl-search" id="historyCompaniesSearch" placeholder="Search by ID, name, email, industry..." />
+              </div>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" data-bs-toggle="modal" data-bs-target="#historyCompanyFilterModal">
+                <i class="bi bi-funnel"></i> Filters
+              </button>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" onclick="clearHistoryCompaniesFilters()">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
+              <button class="btn-c btn-c-primary btn-c-sm" type="button" onclick="applyHistoryCompaniesFilters()">
+                Search
+              </button>
+              <span class="history-count-pill" id="historyCompaniesCount">{{ hc_total }} shown</span
+              >
+            </div>
+            <div class="table-wrap u-no-radius-shadow">
+              <table class="tbl" id="historyCompaniesTbl">
+                <thead>
+                  <tr>
+                    <th>#ID</th>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Industry</th>
+                    <th>Drives</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th class="u-text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in history_companies %} {% set c_status =
+                  'blacklisted' if not c.is_active else (c.approval_status|lower
+                  if c.approval_status else 'pending') %}
+                  <tr class="hist-company-row" data-search="{{ ((c.company_id or c.id|string) + ' ' + c.company_name + ' ' + c.email + ' ' + (c.industry or ''))|lower }}" data-status="{{ c_status }}" data-industry="{{ (c.industry or '')|lower }}" data-drives="{{ c.drives|length }}" data-date="{{ c.created_at.strftime('%Y-%m-%d') if c.created_at else '' }}">
+                    <td class="u-fw700-grey400">
+                      {{ c.company_id or ('#' ~ c.id) }}
+                    </td>
+                    <td class="u-fw600">{{ c.company_name }}</td>
+                    <td class="u-fs082-grey500">
+                      {{ c.email }}
+                    </td>
+                    <td>{{ c.industry or '—' }}</td>
+                    <td class="u-fw700-accent">
+                      {{ c.drives|length }}
+                    </td>
+                    <td class="u-fs082-grey400">
+                      <span data-ist-dt="{{ c.created_at.isoformat() if c.created_at else '' }}" data-ist-format="date">{{ c.created_at.strftime('%d %b %Y') if c.created_at
+                        else '—' }}</span
+                      >
+                    </td>
+                    <td>
+                      {% if c_status == 'blacklisted' %}
+                      <span class="badge-pill badge-blacklisted">Blacklisted</span
+                      >
+                      {% elif c_status == 'approved' %}
+                      <span class="badge-pill badge-approved">Approved</span>
+                      {% elif c_status == 'rejected' %}
+                      <span class="badge-pill badge-rejected">Rejected</span>
+                      {% else %}
+                      <span class="badge-pill badge-pending">Pending</span>
+                      {% endif %}
+                    </td>
+                    <td class="u-text-right">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="showActivityDetail('company','{{ c.id }}')">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %} {% for dc in deleted_companies_history %}
+                  <tr class="hist-company-row" data-search="{{ ((dc.company_id or dc.original_company_pk|string) + ' ' + (dc.company_name or '') + ' ' + (dc.email or '') + ' ' + (dc.industry or ''))|lower }}" data-status="deleted" data-industry="{{ (dc.industry or '')|lower }}" data-drives="0" data-date="{{ dc.deleted_at.strftime('%Y-%m-%d') if dc.deleted_at else '' }}">
+                    <td class="u-fw700-grey400">
+                      {{ dc.company_id or ('#' ~ dc.original_company_pk) }}
+                    </td>
+                    <td class="u-fw600">
+                      {{ dc.company_name or '—' }}
+                    </td>
+                    <td class="u-fs082-grey500">
+                      {{ dc.email or '—' }}
+                    </td>
+                    <td>{{ dc.industry or '—' }}</td>
+                    <td class="u-fw700-grey400">0</td>
+                    <td class="u-fs082-grey400">
+                      <span data-ist-dt="{{ dc.deleted_at.isoformat() if dc.deleted_at else '' }}" data-ist-format="datetime">{{ dc.deleted_at.strftime('%d %b %Y, %I:%M %p') if
+                        dc.deleted_at else '—' }}</span
+                      >
+                    </td>
+                    <td>
+                      <span class="badge-pill badge-deleted">Deleted</span>
+                    </td>
+                    <td class="u-text-right">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="openDeletedCompanyHistoryDetail(this)" data-company-id="{{ dc.company_id or ('#' ~ dc.original_company_pk) }}" data-name="{{ dc.company_name or '' }}" data-email="{{ dc.email or '' }}" data-industry="{{ dc.industry or '' }}" data-approval-status="{{ dc.approval_status or '' }}" data-deleted-on="{{ dc.deleted_at.strftime('%d %b %Y, %I:%M %p') if dc.deleted_at else '—' }}" data-deleted-by="{{ dc.deleted_by_admin.email if dc.deleted_by_admin else 'Admin' }}">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="pending-pane" id="history-pane-drives">
+          <div class="stats-grid u-mb-1">
+            {% for lbl,val,col,icon in
+            [('Total',ongoing_drives|length,'info','bi-calendar-event-fill'),('Approved',hd_approved,'success','bi-check-circle-fill'),('Pending',hd_pending,'warning','bi-hourglass-split'),('Closed',hd_closed,'secondary','bi-archive-fill'),('Rejected',hd_rejected,'danger','bi-x-circle-fill')]
+            %}
+            <div class="stat-card c-{{ col }}">
+              <div class="stat-card-hdr">
+                <div>
+                  <div class="stat-val" style="color:var(--{{ col }});">
+                    {{ val }}
+                  </div>
+                  <div class="stat-lbl">{{ lbl }}</div>
+                </div>
+                <div class="stat-icon {{ col }}">
+                  <i class="bi {{ icon }}"></i>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-title">
+                <i class="bi bi-calendar-event"></i> Drive History
+              </div>
+            </div>
+            <div class="history-toolbar">
+              <div class="search-wrap">
+                <i class="bi bi-search"></i
+                ><input type="text" class="tbl-search" id="historyDrivesSearch" placeholder="Search by ID, title, company, location..." />
+              </div>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" data-bs-toggle="modal" data-bs-target="#historyDriveFilterModal">
+                <i class="bi bi-funnel"></i> Filters
+              </button>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" onclick="clearHistoryDrivesFilters()">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
+              <button class="btn-c btn-c-primary btn-c-sm" type="button" onclick="applyHistoryDrivesFilters()">
+                Search
+              </button>
+              <span class="history-count-pill" id="historyDrivesCount">{{ ongoing_drives|length }} shown</span
+              >
+            </div>
+            <div class="table-wrap u-no-radius-shadow">
+              <table class="tbl" id="historyDrivesTbl">
+                <thead>
+                  <tr>
+                    <th>#ID</th>
+                    <th>Title</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Apps</th>
+                    <th>Placed</th>
+                    <th>Rejected</th>
+                    <th>Created</th>
+                    <th class="u-text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for d in ongoing_drives %} {% set ds =
+                  d.applications|selectattr('status','equalto','Placed')|list|length
+                  %} {% set dr =
+                  d.applications|selectattr('status','equalto','Rejected')|list|length
+                  %}
+                  <tr class="hist-drive-row" data-search="{{ ((d.drive_id or d.id|string) + ' ' + d.job_title + ' ' + d.company.company_name + ' ' + (d.location or ''))|lower }}" data-status="{{ (d.status or '')|lower }}" data-company="{{ (d.company.company_name or '')|lower }}" data-location="{{ (d.location or '')|lower }}" data-apps="{{ d.applications|length }}" data-date="{{ d.created_at.strftime('%Y-%m-%d') if d.created_at else '' }}">
+                    <td class="u-fw700-grey400">
+                      {{ d.drive_id or ('#' ~ d.id) }}
+                    </td>
+                    <td class="u-fw600">{{ d.job_title }}</td>
+                    <td>{{ d.company.company_name }}</td>
+                    <td>
+                      <span class="badge-pill badge-{{ d.status|lower }}">{{ d.status }}</span
+                      >
+                    </td>
+                    <td class="u-fw700-accent">
+                      {{ d.applications|length }}
+                    </td>
+                    <td class="u-fw700-success">
+                      {{ ds }}
+                    </td>
+                    <td class="u-fw700-danger">
+                      {{ dr }}
+                    </td>
+                    <td class="u-fs082-grey400">
+                      <span data-ist-dt="{{ d.created_at.isoformat() if d.created_at else '' }}" data-ist-format="date">{{ d.created_at.strftime('%d %b %Y') if d.created_at
+                        else '—' }}</span
+                      >
+                    </td>
+                    <td class="u-text-right">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="showActivityDetail('drive','{{ d.id }}')">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="pending-pane" id="history-pane-applications">
+          <div class="stats-grid u-mb-1">
+            {% for lbl,val,col,icon in
+            [('Total',student_applications|length,'info','bi-file-earmark-text-fill'),('Applied',ha_applied,'accent','bi-send-fill'),('Shortlisted',ha_short,'warning','bi-star-fill'),('Interview',ha_int,'purple','bi-camera-video-fill'),('Placed',ha_sel,'success','bi-trophy-fill'),('Rejected',ha_rej,'danger','bi-x-circle-fill')]
+            %}
+            <div class="stat-card c-{{ col }}">
+              <div class="stat-card-hdr">
+                <div>
+                  <div class="stat-val" style="color:var(--{{ col }});">
+                    {{ val }}
+                  </div>
+                  <div class="stat-lbl">{{ lbl }}</div>
+                </div>
+                <div class="stat-icon {{ col }}">
+                  <i class="bi {{ icon }}"></i>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-title">
+                <i class="bi bi-file-earmark-text"></i> Application History
+              </div>
+            </div>
+            <div class="history-toolbar">
+              <div class="search-wrap">
+                <i class="bi bi-search"></i
+                ><input type="text" class="tbl-search" id="historyAppsSearch" placeholder="Search by app id, student, drive, company..." />
+              </div>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" data-bs-toggle="modal" data-bs-target="#historyAppFilterModal">
+                <i class="bi bi-funnel"></i> Filters
+              </button>
+              <button class="btn-c btn-c-outline btn-c-sm" type="button" onclick="clearHistoryAppsFilters()">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
+              <button class="btn-c btn-c-primary btn-c-sm" type="button" onclick="applyHistoryAppsFilters()">
+                Search
+              </button>
+              <span class="history-count-pill" id="historyAppsCount">{{ student_applications|length }} shown</span
+              >
+            </div>
+            <div class="table-wrap u-no-radius-shadow">
+              <table class="tbl" id="historyAppsTbl">
+                <thead>
+                  <tr>
+                    <th>#ID</th>
+                    <th>Student</th>
+                    <th>Drive</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Applied On</th>
+                    <th class="u-text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for a in student_applications %}
+                  <tr class="hist-app-row" data-search="{{ ((a.application_code or a.id|string) + ' ' + a.student.name + ' ' + a.drive.job_title + ' ' + a.drive.company.company_name)|lower }}" data-status="{{ a.status }}" data-drive="{{ (a.drive.job_title or '')|lower }}" data-company="{{ (a.drive.company.company_name or '')|lower }}" data-degree="{{ (a.student.degree or '')|lower }}" data-date="{{ a.application_date.strftime('%Y-%m-%d') if a.application_date else '' }}">
+                    <td class="u-fw700-grey400">
+                      {{ a.application_code or ('#' ~ a.id) }}
+                    </td>
+                    <td>{{ a.student.name }}</td>
+                    <td>{{ a.drive.job_title }}</td>
+                    <td>{{ a.drive.company.company_name }}</td>
+                    <td>
+                      <span class="badge-pill badge-{{ a.status|lower }}">{{ a.status }}</span
+                      >
+                    </td>
+                    <td class="u-fs082-grey400">
+                      <span data-ist-dt="{{ a.application_date.isoformat() if a.application_date else '' }}" data-ist-format="datetime">{{ a.application_date.strftime('%d %b %Y, %I:%M %p') if
+                        a.application_date else '—' }}</span
+                      >
+                    </td>
+                    <td class="u-text-right">
+                      <button class="btn-c btn-c-outline btn-c-sm" onclick="showActivityDetail('app','{{ a.id }}')">
+                        <i class="bi bi-eye"></i>View
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="content-section" id="broadcast-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-megaphone-fill"></i> Broadcast Messages
+          </h1>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <div class="broadcast-card">
+              <h5 style=" font-family: &quot;Outfit&quot;, sans-serif; font-weight: 700; margin-bottom: 1.25rem; ">
+                Compose Message
+              </h5>
+              <div class="broadcast-tabs" id="broadcastTabs">
+                <div class="btab active" onclick="switchBroadcastTab('student')" id="btab-student">
+                  <i class="bi bi-people-fill"></i> Students
+                </div>
+                <div class="btab" onclick="switchBroadcastTab('company')" id="btab-company">
+                  <i class="bi bi-building-fill"></i> Companies
+                </div>
+              </div>
+              <div class="u-mb-1">
+                <label class="form-label">Subject / Title</label>
+                <input type="text" id="broadcastSubject" class="form-control" placeholder="e.g. Important Update — Placement Schedule" />
+              </div>
+              <div class="u-mb-1">
+                <label class="form-label">Message</label>
+                <textarea id="broadcastMessage" class="form-control" rows="6" placeholder="Type your message here…" oninput="updateBroadcastPreview()"></textarea>
+              </div>
+              <div style="display: flex; gap: 0.75rem; align-items: center">
+                <button class="btn-c btn-c-purple" onclick="sendBroadcast()">
+                  <i class="bi bi-send-fill"></i> Send Broadcast
+                </button>
+                <button class="btn-c btn-c-outline" onclick="clearBroadcast()">
+                  <i class="bi bi-x"></i> Clear
+                </button>
+                <span id="broadcastRecipientCount" style=" font-size: 0.82rem; color: var(--grey-400); margin-left: auto; "></span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="broadcast-card" style="border-top-color: var(--info)">
+              <h5 style=" font-family: &quot;Outfit&quot;, sans-serif; font-weight: 700; margin-bottom: 1rem; ">
+                Message Preview
+              </h5>
+              <div class="broadcast-preview">
+                <div class="msg-bubble">
+                  <div class="msg-bubble-hdr" id="previewTarget">
+                    To: All Students
+                  </div>
+                  <div id="previewSubject" style=" font-weight: 700; margin-bottom: 0.4rem; color: var(--navy); ">
+                    Subject here…
+                  </div>
+                  <div id="previewBody" style="color: var(--grey-600); font-size: 0.875rem">
+                    Message will appear here…
+                  </div>
+                </div>
+                <div style=" font-size: 0.72rem; color: var(--grey-400); margin-top: 0.75rem; text-align: right; ">
+                  Sent by Admin · Plaxeron Placement Cell
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mt-3">
+          <div class="card-hdr">
+            <div class="card-title">
+              <i class="bi bi-clock-history"></i> Broadcast History
+            </div>
+          </div>
+          <div class="card-body" id="broadcastHistory">
+            <div style=" text-align: center; padding: 1.5rem; color: var(--grey-400); font-size: 0.875rem; ">
+              <i class="bi bi-megaphone" style=" font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.4; "></i
+              >No messages sent yet in this session.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="content-section" id="support-section">
+        <div class="section-hdr">
+          <h1 class="section-title">
+            <i class="bi bi-headset"></i> Support Tickets
+          </h1>
+          <div style="display: flex; gap: 0.5rem; align-items: center">
+            <span id="totalTicketsCount" class="u-fs082-grey400"></span>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-8">
+            <div class="card">
+              <div class="card-hdr">
+                <div class="card-title">
+                  <i class="bi bi-ticket-perforated"></i> Open Tickets
+                </div>
+                <div style="display: flex; gap: 0.5rem">
+                  <button class="ticket-type-btn active" id="ticketTypeAllBtn" onclick="setTicketTypeFilter('')">
+                    All
+                  </button>
+                  <button class="ticket-type-btn" id="ticketTypeStudentBtn" onclick="setTicketTypeFilter('student')">
+                    Students
+                  </button>
+                  <button class="ticket-type-btn" id="ticketTypeCompanyBtn" onclick="setTicketTypeFilter('company')">
+                    Companies
+                  </button>
+                </div>
+              </div>
+              <div class="card-body" id="openTicketsContainer">
+                <div style=" text-align: center; padding: 2rem; color: var(--grey-400); ">
+                  <i class="bi bi-ticket" style=" font-size: 2.5rem; display: block; margin-bottom: 0.75rem; opacity: 0.4; "></i>
+                  <p>No open tickets.</p>
+                </div>
+              </div>
+            </div>
+            <div class="card mt-3">
+              <div class="card-hdr">
+                <div class="card-title">
+                  <i class="bi bi-check2-square"></i> Closed / Resolved Tickets
+                </div>
+              </div>
+              <div class="card-body" id="closedTicketsContainer">
+                <div style=" text-align: center; padding: 2rem; color: var(--grey-400); ">
+                  <i class="bi bi-inbox" style=" font-size: 2.2rem; display: block; margin-bottom: 0.75rem; opacity: 0.35; "></i>
+                  <p>No closed tickets.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-hdr">
+                <div class="card-title">
+                  <i class="bi bi-bar-chart"></i> Ticket Stats
+                </div>
+              </div>
+              <div class="card-body">
+                <div style=" display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center; ">
+                  <div style=" background: var(--grey-50); border-radius: 10px; padding: 1rem; border-top: 3px solid var(--danger); ">
+                    <div id="ticketStatOpen" style=" font-family: &quot;Outfit&quot;, sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--danger); ">
+                      0
+                    </div>
+                    <div style=" font-size: 0.72rem; color: var(--grey-400); font-weight: 600; text-transform: uppercase; ">
+                      Open
+                    </div>
+                  </div>
+                  <div style=" background: var(--grey-50); border-radius: 10px; padding: 1rem; border-top: 3px solid var(--success); ">
+                    <div id="ticketStatResolved" style=" font-family: &quot;Outfit&quot;, sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--success); ">
+                      0
+                    </div>
+                    <div style=" font-size: 0.72rem; color: var(--grey-400); font-weight: 600; text-transform: uppercase; ">
+                      Resolved
+                    </div>
+                  </div>
+                  <div style=" background: var(--grey-50); border-radius: 10px; padding: 1rem; border-top: 3px solid var(--accent); ">
+                    <div id="ticketStatStudents" style=" font-family: &quot;Outfit&quot;, sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--accent); ">
+                      0
+                    </div>
+                    <div style=" font-size: 0.72rem; color: var(--grey-400); font-weight: 600; text-transform: uppercase; ">
+                      Students
+                    </div>
+                  </div>
+                  <div style=" background: var(--grey-50); border-radius: 10px; padding: 1rem; border-top: 3px solid var(--warning); ">
+                    <div id="ticketStatCompanies" style=" font-family: &quot;Outfit&quot;, sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--warning); ">
+                      0
+                    </div>
+                    <div style=" font-size: 0.72rem; color: var(--grey-400); font-weight: 600; text-transform: uppercase; ">
+                      Companies
+                    </div>
+                  </div>
+                </div>
+                <div style=" margin-top: 1.25rem; padding: 1rem; background: rgba(139, 92, 246, 0.06); border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.15); ">
+                  <div style=" font-size: 0.82rem; font-weight: 600; color: var(--purple); margin-bottom: 0.4rem; ">
+                    <i class="bi bi-info-circle"></i> How it works
+                  </div>
+                  <p style=" font-size: 0.8rem; color: var(--grey-600); margin: 0; line-height: 1.5; ">
+                    Students and companies can raise support tickets from their
+                    dashboards. You'll see them here and can respond or mark
+                    them resolved.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <div class="modal fade" id="activityDetailModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom" id="actDetailTitle">
+              Event Details
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="actDetailBody">
+            <div class="u-empty-center">
+              Loading…
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="resumePreviewModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom" id="resumePreviewTitle">
+              Resume Preview
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" style="padding: 0.75rem">
+            <iframe id="resumePreviewFrame" title="Resume Preview" style=" width: 100%; height: 78vh; border: 1px solid var(--grey-200); border-radius: 10px; background: #fff; " loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="broadcastConfirmModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom" id="bcConfirmTitle">
+              Confirm Broadcast
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p id="bcConfirmText" style="color: var(--grey-600); font-size: 0.9rem"></p>
+            <div class="broadcast-preview">
+              <div class="msg-bubble">
+                <div class="msg-bubble-hdr" id="bcPreviewTarget"></div>
+                <div id="bcPreviewSubject" style="font-weight: 700; margin-bottom: 0.4rem"></div>
+                <div id="bcPreviewBody" style="font-size: 0.875rem; color: var(--grey-600)"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-c btn-c-outline" data-bs-dismiss="modal">
+              Cancel</button
+            ><button type="button" class="btn-c btn-c-purple" onclick="confirmSendBroadcast()">
+              <i class="bi bi-send-fill"></i> Send Now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="ticketUserDetailModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom" id="ticketUserDetailTitle">
+              Ticket Submitter Details
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="ticketUserDetailBody">
+            <div class="u-empty-center">
+              Loading details…
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="historyStudentFilterModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom">Student History Filters</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Date From</label>
+                <input type="date" class="form-control" id="historyStudentsDateFrom" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date To</label>
+                <input type="date" class="form-control" id="historyStudentsDateTo" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Course</label>
+                <select class="form-select" id="historyStudentsCourse">
+                  <option value="">All Courses</option>
+                  {% for s in history_students %}{% if s.degree %}
+                  <option value="{{ s.degree }}">{{ s.degree }}</option>
+                  {% endif %}{% endfor %} {% for d in deleted_students_history
+                  %}{% if d.degree %}
+                  <option value="{{ d.degree }}">{{ d.degree }}</option>
+                  {% endif %}{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Year of Study</label>
+                <select class="form-select" id="historyStudentsStudyYear">
+                  <option value="">All Years</option>
+                  {% for s in history_students %}{% if s.year_of_study %}
+                  <option value="{{ s.year_of_study }}">
+                    {{ s.year_of_study }}
+                  </option>
+                  {% endif %}{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Passing Out Year</label>
+                <select class="form-select" id="historyStudentsPassingYear">
+                  <option value="">All Passing Years</option>
+                  {% for s in history_students %}{% if s.graduation_year %}
+                  <option value="{{ s.graduation_year }}">
+                    {{ s.graduation_year }}
+                  </option>
+                  {% endif %}{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="historyStudentsStatus">
+                  <option value="">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="blacklisted">Blacklisted</option>
+                  <option value="deleted">Deleted</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-c btn-c-outline" onclick="clearHistoryStudentsFilters()">
+              Reset
+            </button>
+            <button type="button" class="btn-c btn-c-primary" onclick="applyStudentHistoryFilters()">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="historyCompanyFilterModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom">Company History Filters</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Date From</label>
+                <input type="date" class="form-control" id="historyCompaniesDateFrom" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date To</label>
+                <input type="date" class="form-control" id="historyCompaniesDateTo" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="historyCompaniesStatus">
+                  <option value="">All Status</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="blacklisted">Blacklisted</option>
+                  <option value="deleted">Deleted</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Industry</label>
+                <select class="form-select" id="historyCompaniesIndustry">
+                  <option value="">All Industry</option>
+                  {% for c in history_companies %}{% if c.industry %}
+                  <option value="{{ c.industry }}">{{ c.industry }}</option>
+                  {% endif %}{% endfor %} {% for dc in deleted_companies_history
+                  %}{% if dc.industry %}
+                  <option value="{{ dc.industry }}">{{ dc.industry }}</option>
+                  {% endif %}{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Min Drives</label>
+                <input type="number" class="form-control" id="historyCompaniesMinDrives" min="0" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Max Drives</label>
+                <input type="number" class="form-control" id="historyCompaniesMaxDrives" min="0" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-c btn-c-outline" onclick="clearHistoryCompaniesFilters()">
+              Reset
+            </button>
+            <button type="button" class="btn-c btn-c-primary" onclick="applyHistoryCompaniesFilters()">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="historyDriveFilterModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom">Drive History Filters</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="historyDrivesStatus">
+                  <option value="">All Status</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="closed">Closed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Company</label>
+                <select class="form-select" id="historyDrivesCompany">
+                  <option value="">All Companies</option>
+                  {% for d in ongoing_drives %}
+                  <option value="{{ d.company.company_name }}">
+                    {{ d.company.company_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Location</label>
+                <select class="form-select" id="historyDrivesLocation">
+                  <option value="">All Locations</option>
+                  {% for d in ongoing_drives %}{% if d.location %}
+                  <option value="{{ d.location }}">{{ d.location }}</option>
+                  {% endif %}{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Min Applications</label>
+                <input type="number" class="form-control" id="historyDrivesMinApps" min="0" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date From</label>
+                <input type="date" class="form-control" id="historyDrivesDateFrom" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date To</label>
+                <input type="date" class="form-control" id="historyDrivesDateTo" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Max Applications</label>
+                <input type="number" class="form-control" id="historyDrivesMaxApps" min="0" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-c btn-c-outline" onclick="clearHistoryDrivesFilters()">
+              Reset
+            </button>
+            <button type="button" class="btn-c btn-c-primary" onclick="applyHistoryDrivesFilters()">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="historyAppFilterModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header-dark">
+            <div class="modal-title-custom">Application History Filters</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="historyAppsStatus">
+                  <option value="">All Status</option>
+                  <option value="Applied">Applied</option>
+                  <option value="Shortlisted">Shortlisted</option>
+                  <option value="Interview">Interview</option>
+                  <option value="Placed">Placed</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Drive</label>
+                <select class="form-select" id="historyAppsDrive">
+                  <option value="">All Drives</option>
+                  {% for a in student_applications %}
+                  <option value="{{ a.drive.job_title }}">
+                    {{ a.drive.job_title }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Company</label>
+                <select class="form-select" id="historyAppsCompany">
+                  <option value="">All Companies</option>
+                  {% for a in student_applications %}
+                  <option value="{{ a.drive.company.company_name }}">
+                    {{ a.drive.company.company_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Degree</label>
+                <select class="form-select" id="historyAppsDegree">
+                  <option value="">All Degrees</option>
+                  {% for a in student_applications %}{% if a.student.degree %}
+                  <option value="{{ a.student.degree }}">
+                    {{ a.student.degree }}
+                  </option>
+                  {% endif %}{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date From</label>
+                <input type="date" class="form-control" id="historyAppsDateFrom" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date To</label>
+                <input type="date" class="form-control" id="historyAppsDateTo" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-c btn-c-outline" onclick="clearHistoryAppsFilters()">
+              Reset
+            </button>
+            <button type="button" class="btn-c btn-c-primary" onclick="applyHistoryAppsFilters()">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+window.ADMIN_DASHBOARD_DATA = {
+    students: {{ students_json|tojson }},
+    companies: {{ companies_json|tojson }},
+    placementRate: {{ placement_rate }},
+    studentsCount: {{ students_count }},
+    companiesCount: {{ companies_count }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/admin_dashboard.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaxeron - Smart Campus Placement Portal</title>
+
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/index.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg custom-navbar">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" style="border: 1px solid rgba(255,255,255,0.3);">
+            <span class="navbar-toggler-icon" style="filter: brightness(0) invert(1);"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link" href="#features">How It Works</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#drives">Active Drives</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#testimonials">Success Stories</a>
+                </li>
+
+                <!-- LOGIN DROPDOWN -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('student_login') }}">
+                                <i class="bi bi-person"></i> Student Login
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('company_login') }}">
+                                <i class="bi bi-building"></i> Company Login
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin_login') }}">
+                                <i class="bi bi-shield-lock"></i> Admin Login
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- REGISTER BUTTON -->
+                <li class="nav-item dropdown ms-lg-2">
+                    <a class="btn btn-accent dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-plus me-1"></i>Register
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('student_register') }}">
+                                <i class="bi bi-mortarboard"></i> Student Registration
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('company_register') }}">
+                                <i class="bi bi-building-add"></i> Company Registration
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO SECTION -->
+<section id="home" class="hero-section">
+    <div class="hero-content">
+        <div class="container">
+            <div class="hero-grid">
+                <!-- Left: Text Content -->
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Simplifying <span class="highlight"><br>Campus Placements</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Connecting talent with opportunity through a seamless, intelligent recruitment ecosystem. 
+                        Your dream job is just one click away.
+                    </p>
+
+                    <div class="hero-buttons">
+                        <a href="{{ url_for('student_register') }}" class="btn btn-hero-primary">
+                            <i class="bi bi-rocket-takeoff"></i>
+                            Join as Student
+                        </a>
+                        <a href="{{ url_for('company_register') }}" class="btn btn-hero-secondary">
+                            <i class="bi bi-briefcase"></i>
+                            Hire Talent
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right: Hero Image - Fixed, No Overlays -->
+                <div class="hero-image-container">
+                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200" 
+                         alt="Campus Placement" 
+                         class="hero-image">
+                </div>
+            </div>
+
+            <!-- Feature Highlights -->
+            <div class="hero-features">
+                <div class="hero-feature-item">
+                    <div class="hero-feature-icon">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </div>
+                    <div class="hero-feature-title">Instant Apply</div>
+                    <div class="hero-feature-desc">One-click applications to multiple drives</div>
+                </div>
+                <div class="hero-feature-item">
+                    <div class="hero-feature-icon">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div class="hero-feature-title">Real-time Tracking</div>
+                    <div class="hero-feature-desc">Monitor your application status live</div>
+                </div>
+                <div class="hero-feature-item">
+                    <div class="hero-feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="hero-feature-title">Verified Companies</div>
+                    <div class="hero-feature-desc">Only approved recruiters on platform</div>
+                </div>
+                <div class="hero-feature-item">
+                    <div class="hero-feature-icon">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="hero-feature-title">Smart Scheduling</div>
+                    <div class="hero-feature-desc">Never miss an interview deadline</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPANY CAROUSEL -->
+        <div class="company-carousel">
+            <div class="carousel-track">
+                <!-- First set -->
+                <div class="company-logo-wrapper">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/microsoft/microsoft-ar21.svg" alt="Microsoft">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/amazon/amazon-ar21.svg" alt="Amazon">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/apple/apple-ar21.svg" alt="Apple">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/IBM_logo.svg" alt="IBM">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/netflix/netflix-ar21.svg" alt="Netflix">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/LinkedIn_Logo.svg" alt="LinkedIn">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/adobe/adobe-ar21.svg" alt="Adobe">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/salesforce/salesforce-ar21.svg" alt="Salesforce">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/oracle/oracle-ar21.svg" alt="Oracle">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/meta/meta-ar21.svg" alt="Meta">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/deloitte/deloitte-ar21.svg" alt="Deloitte">
+                </div>
+                
+                <!-- Duplicate set for seamless loop -->
+                <div class="company-logo-wrapper">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/microsoft/microsoft-ar21.svg" alt="Microsoft">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/amazon/amazon-ar21.svg" alt="Amazon">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/apple/apple-ar21.svg" alt="Apple">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/IBM_logo.svg" alt="IBM">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/netflix/netflix-ar21.svg" alt="Netflix">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/LinkedIn_Logo.svg" alt="LinkedIn">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/adobe/adobe-ar21.svg" alt="Adobe">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/salesforce/salesforce-ar21.svg" alt="Salesforce">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/oracle/oracle-ar21.svg" alt="Oracle">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/meta/meta-ar21.svg" alt="Meta">
+                </div>
+                <div class="company-logo-wrapper">
+                    <img src="https://www.vectorlogo.zone/logos/deloitte/deloitte-ar21.svg" alt="Deloitte">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW PLAXERON WORKS SECTION - ENHANCED WITH ROLE TABS -->
+<section id="features" class="features-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">How Plaxeron Works</h2>
+            <p class="section-subtitle">Complete placement journey tailored for each role in the ecosystem</p>
+            <div class="accent-line"></div>
+        </div>
+
+        <!-- Role Selection Tabs -->
+        <div class="role-tabs">
+            <div class="role-tab active" data-role="student">
+                <i class="bi bi-mortarboard-fill"></i>
+                <span>For Students</span>
+            </div>
+            <div class="role-tab" data-role="company">
+                <i class="bi bi-building-fill"></i>
+                <span>For Companies</span>
+            </div>
+            <div class="role-tab" data-role="admin">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>For Admin</span>
+            </div>
+        </div>
+
+        <!-- Workflow Container -->
+        <div class="workflow-container">
+            <!-- Student Workflow -->
+            <div class="workflow-content active" data-workflow="student">
+                <div class="process-steps">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <i class="bi bi-person-badge-fill step-icon"></i>
+                        <h5>Create Your Profile</h5>
+                        <p>Build a comprehensive professional profile with your academic details, skills, and resume.</p>
+                        <ul class="step-list">
+                            <li>Upload resume & documents</li>
+                            <li>Add academic credentials</li>
+                            <li>Highlight your skills</li>
+                        </ul>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <i class="bi bi-briefcase-fill step-icon"></i>
+                        <h5>Apply to Drives</h5>
+                        <p>Browse through curated placement drives from top companies with one-click applications.</p>
+                        <ul class="step-list">
+                            <li>View approved drives</li>
+                            <li>Check eligibility criteria</li>
+                            <li>Apply instantly</li>
+                        </ul>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <i class="bi bi-trophy-fill step-icon"></i>
+                        <h5>Get Hired</h5>
+                        <p>Track your application status in real-time and receive offer letters directly through the portal.</p>
+                        <ul class="step-list">
+                            <li>Real-time status updates</li>
+                            <li>Interview scheduling</li>
+                            <li>Receive offer letters</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Workflow -->
+            <div class="workflow-content" data-workflow="company">
+                <div class="process-steps">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <i class="bi bi-building-add step-icon"></i>
+                        <h5>Register & Get Approved</h5>
+                        <p>Create your company profile and wait for admin verification to ensure quality standards.</p>
+                        <ul class="step-list">
+                            <li>Submit company details</li>
+                            <li>Await admin approval</li>
+                            <li>Access dashboard</li>
+                        </ul>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <i class="bi bi-megaphone-fill step-icon"></i>
+                        <h5>Create Placement Drives</h5>
+                        <p>Post job openings with detailed requirements and eligibility criteria for students.</p>
+                        <ul class="step-list">
+                            <li>Define job requirements</li>
+                            <li>Set eligibility criteria</li>
+                            <li>Submit for approval</li>
+                        </ul>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <i class="bi bi-people-fill step-icon"></i>
+                        <h5>Review & Hire</h5>
+                        <p>View applicants, shortlist candidates, conduct interviews, and make final selections.</p>
+                        <ul class="step-list">
+                            <li>Review applications</li>
+                            <li>Shortlist candidates</li>
+                            <li>Update selection status</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Workflow -->
+            <div class="workflow-content" data-workflow="admin">
+                <div class="process-steps">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <i class="bi bi-clipboard-check-fill step-icon"></i>
+                        <h5>Approve Companies</h5>
+                        <p>Review and approve company registrations to maintain platform quality and authenticity.</p>
+                        <ul class="step-list">
+                            <li>Review company profiles</li>
+                            <li>Verify credentials</li>
+                            <li>Approve or reject</li>
+                        </ul>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <i class="bi bi-check2-square step-icon"></i>
+                        <h5>Approve Drives</h5>
+                        <p>Validate placement drive details and ensure they meet institutional standards.</p>
+                        <ul class="step-list">
+                            <li>Review drive details</li>
+                            <li>Check eligibility criteria</li>
+                            <li>Approve for students</li>
+                        </ul>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <i class="bi bi-bar-chart-fill step-icon"></i>
+                        <h5>Monitor & Manage</h5>
+                        <p>Track placement statistics, manage users, and oversee the entire recruitment process.</p>
+                        <ul class="step-list">
+                            <li>View analytics dashboard</li>
+                            <li>Manage student/company data</li>
+                            <li>Generate reports</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ACTIVE DRIVES SECTION -->
+<section id="drives" class="drives-section">
+    <div class="container">
+        <div class="section-header-row">
+            <div>
+                <h2 class="section-title mb-2">Active Placement Drives</h2>
+                <p class="section-subtitle mb-0">Real-time opportunities from top companies</p>
+            </div>
+            <a href="{{ url_for('student_login') }}" class="view-all-link">
+                View All Drives <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        {% if active_drives %}
+        <div class="row g-4">
+            {% for drive in active_drives[:6] %}
+            <div class="col-lg-4 col-md-6">
+                <div class="drive-card">
+                    <div class="drive-header">
+                        {% set days_old = (now - drive.created_at).days %}
+                        {% if days_old <= 2 %}
+                            <span class="drive-badge badge-new">
+                                <i class="bi bi-star-fill me-1"></i>New
+                            </span>
+                        {% elif drive.application_deadline and (drive.application_deadline - now.date()).days <= 3 %}
+                            <span class="drive-badge badge-closing">
+                                <i class="bi bi-clock-fill me-1"></i>Closing Soon
+                            </span>
+                        {% else %}
+                            <span class="drive-badge badge-featured">
+                                <i class="bi bi-bookmark-fill me-1"></i>Featured
+                            </span>
+                        {% endif %}
+                        <span class="drive-time">
+                            {{ drive.created_at.strftime('%d %b') }}
+                        </span>
+                    </div>
+
+                    <h5 class="drive-title">{{ drive.job_title }}</h5>
+                    <div class="drive-company">
+                        <i class="bi bi-building"></i>
+                        {{ drive.company.company_name }}
+                    </div>
+
+                    <div class="drive-meta">
+                        {% if drive.location %}
+                        <span class="meta-tag">
+                            <i class="bi bi-geo-alt me-1"></i>{{ drive.location }}
+                        </span>
+                        {% endif %}
+                        <span class="meta-tag">
+                            <i class="bi bi-briefcase me-1"></i>Full-time
+                        </span>
+                    </div>
+
+                    <div class="drive-details">
+                        {% if drive.salary %}
+                        <div class="detail-item">
+                            <i class="bi bi-currency-rupee"></i>
+                            <span>₹{{ "{:,}".format(drive.salary) }} LPA</span>
+                        </div>
+                        {% endif %}
+
+                        {% if drive.eligibility %}
+                        <div class="detail-item">
+                            <i class="bi bi-mortarboard"></i>
+                            <span>{{ drive.eligibility[:50] }}{% if drive.eligibility|length > 50 %}...{% endif %}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if drive.application_deadline %}
+                        <div class="detail-item">
+                            <i class="bi bi-calendar-event"></i>
+                            <span>Apply by {{ drive.application_deadline.strftime('%d %b %Y') }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <a href="{{ url_for('student_login') }}" class="btn btn-apply">
+                        <i class="bi bi-send me-2"></i>Apply Now
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if active_drives|length > 6 %}
+        <div class="text-center mt-5">
+            <a href="{{ url_for('student_login') }}" class="btn btn-hero-primary">
+                <i class="bi bi-grid"></i>
+                View All {{ active_drives|length }} Drives
+            </a>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-drives">
+            <div class="empty-icon">
+                <i class="bi bi-briefcase"></i>
+            </div>
+            <h5>No Active Drives Right Now</h5>
+            <p>New placement opportunities are added regularly. Check back soon or register to get notified!</p>
+            <a href="{{ url_for('student_register') }}" class="btn btn-hero-primary mt-3">
+                <i class="bi bi-bell"></i>
+                Get Notified
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- TESTIMONIALS SECTION -->
+<section id="testimonials" class="testimonials-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Success Stories</h2>
+            <p class="section-subtitle">Real experiences from students and recruiters who found success with Plaxeron</p>
+            <div class="accent-line"></div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="testimonial-card">
+
+                    <p class="testimonial-text">
+                        "Plaxeron made applying for my dream role at Google so easy. The tracking system kept me updated at every stage. Highly recommend to all students!"
+                    </p>
+                    <div class="testimonial-author">
+                        <img src="https://i.pravatar.cc/150?u=student1" class="author-avatar" alt="Rahul">
+                        <div>
+                            <div class="author-name">Rahul Verma</div>
+                            <div class="author-role">Placed at Google (SDE)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="testimonial-card">
+
+                    <p class="testimonial-text">
+                        "The candidate filtering system is a game-changer. We found top-tier talent for our 2026 intake in half the time compared to traditional methods."
+                    </p>
+                    <div class="testimonial-author">
+                        <img src="https://i.pravatar.cc/150?u=recruiter1" class="author-avatar" alt="Sarah">
+                        <div>
+                            <div class="author-name">Sarah Jenkins</div>
+                            <div class="author-role">HR Lead, Microsoft</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "Managing campus drives used to be chaotic. Plaxeron has brought transparency, efficiency, and organization to our entire placement cell."
+                    </p>
+                    <div class="testimonial-author">
+                        <img src="https://i.pravatar.cc/150?u=faculty1" class="author-avatar" alt="Dr. Amit">
+                        <div>
+                            <div class="author-name">Dr. Amit Shah</div>
+                            <div class="author-role">Placement Head, IIT Delhi</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ============================================
+     FAQ SECTION
+============================================ -->
+<section class="faq-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <p class="section-subtitle">Find answers to common questions about Plaxeron</p>
+            <div class="accent-line"></div>
+        </div>
+
+        <div class="faq-container">
+
+            <!-- FAQ Item 1 -->
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How do I register on Plaxeron?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        Click on the "Register" button in the navbar and choose either Student or Company registration. 
+                        Fill in your details, and for students, you can start applying immediately. 
+                        Companies need admin approval before posting drives.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Item 2 -->
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Can I apply to multiple placement drives?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        Yes! Students can apply to as many placement drives as they want. 
+                        However, you can only apply once per drive. Your profile and resume are saved, 
+                        making it easy to apply with just one click.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Item 3 -->
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How long does company approval take?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        The admin team typically reviews company registrations within  24 hours. 
+                        You'll receive an email notification once your company profile is approved 
+                        or if additional information is needed.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Item 4 -->
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How do I track my application status?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        After logging in to your student dashboard, go to "My Applications" 
+                        to see real-time status updates for all your applications. 
+                        You'll see whether you're Applied, Shortlisted, Placed, or Rejected for each drive.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Item 5 -->
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>What documents do I need to upload?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        Students should upload their resume in PDF format. 
+                        You may also be asked to add academic transcripts and certificates. 
+                        Companies need to provide registration documents and company verification details during signup.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Item 6 -->
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Is Plaxeron free to use?</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        Yes! Plaxeron is completely free to use for both companies and students. 
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- CTA SECTION -->
+<section class="cta-section">
+    <div class="cta-content">
+        <div class="container text-center">
+            <h2 class="cta-title">Ready to Launch Your Career?</h2>
+            <p class="cta-subtitle">
+                Join thousands of students who have already found their dream jobs through Plaxeron
+            </p>
+            <div class="cta-buttons">
+                <a href="{{ url_for('student_register') }}" class="btn btn-hero-primary">
+                    <i class="bi bi-rocket-takeoff"></i>
+                    Join as Student
+                </a>
+                <a href="{{ url_for('company_register') }}" class="btn btn-hero-secondary">
+                    <i class="bi bi-briefcase"></i>
+                    Hire Talent
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <h4>
+                    <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+                </h4>
+                <p style="color: rgba(255,255,255,0.7);">
+                    The ultimate bridge between academic excellence and corporate opportunity. 
+                    Empowering students, companies, and institutions.
+                </p>
+                <div class="d-flex gap-3 mt-3">
+                    <a href="#" class="social-icon">
+                        <i class="bi bi-linkedin"></i>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <i class="bi bi-twitter-x"></i>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <i class="bi bi-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-2 offset-md-1">
+                <h6 style="color: var(--white); font-weight: 700; margin-bottom: 1.2rem;">Platform</h6>
+                <ul class="footer-links">
+                    <li><a href="#drives">Active Drives</a></li>
+                    <li><a href="#features">How It Works</a></li>
+                    <li><a href="#testimonials">Success Stories</a></li>
+                    <li><a href="{{ url_for('student_login') }}">Student Login</a></li>
+                </ul>
+            </div>
+
+            <div class="col-md-2">
+                <h6 style="color: var(--white); font-weight: 700; margin-bottom: 1.2rem;">Company</h6>
+                <ul class="footer-links">
+                    <li><a href="{{ url_for('company_register') }}">Register</a></li>
+                    <li><a href="{{ url_for('company_login') }}">Login</a></li>
+                    <li><a href="{{ url_for('company_login') }}">Post Drives</a></li>
+                </ul>
+            </div>
+
+            <div class="col-md-3">
+                <h6 style="color: var(--white); font-weight: 700; margin-bottom: 1.2rem;">Contact Us</h6>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 0.75rem;">
+                    <i class="bi bi-envelope me-2"></i>support@plaxeron.com
+                </p>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 0;">
+                    <i class="bi bi-telephone me-2"></i>+91 1800-XXX-XXXX
+                </p>
+            </div>
+        </div>
+
+        <div class="footer-bottom text-center">
+            <p style="color: rgba(255,255,255,0.6); margin: 0;">
+                © 2026 <strong>Plaxeron</strong> Placement Portal. All rights reserved.
+            </p>
+        </div>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+
+</body>
+</html>

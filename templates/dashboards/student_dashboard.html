@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard | Plaxeron</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="{{ url_for('static', filename='css/student_dashboard.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<!-- ================================================
+     TOP NAVBAR
+================================================ -->
+<nav class="top-navbar">
+    <button class="mobile-toggle" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+    </button>
+
+    {% set brand_href = url_for('home') %}
+    <a href="{{ brand_href }}" class="navbar-brand">
+        <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+    </a>
+
+    <div class="navbar-center">
+        <div class="global-search-wrap" id="globalSearchWrap">
+            <div class="global-search-inner">
+                <i class="bi bi-search"></i>
+                <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Search drives, companies, skills…" autocomplete="off">
+                <button class="global-search-clear" id="globalSearchClear" onclick="clearGlobalSearch()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="search-dropdown" id="searchDropdown"></div>
+        </div>
+    </div>
+
+    <div class="navbar-right">
+        <div class="student-role-badge d-none d-lg-flex">
+            <i class="bi bi-mortarboard-fill"></i>
+            Student
+        </div>
+
+        <div class="notif-bell-btn" onclick="toggleNotifPanel()" title="Notifications">
+            <i class="bi bi-bell"></i>
+            <span class="notif-bell-badge" id="notifBadge"></span>
+        </div>
+
+        <div class="user-pill" id="userPill" onclick="toggleProfileDropdown()">
+            <div class="user-avatar-sm">{{ student.name[0].upper() if student else 'S' }}</div>
+            <span class="user-pill-name d-none d-md-inline">{{ student.name.split()[0] if student else 'Student' }}</span>
+            <i class="bi bi-chevron-down user-pill-chevron"></i>
+        </div>
+
+        <a href="{{ url_for('logout') }}" class="btn-nav-logout d-none d-md-flex">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</nav>
+
+<!-- Profile Quick Dropdown -->
+<div class="profile-dropdown" id="profileDropdown">
+    <div class="pd-header">
+        <div class="pd-avatar-lg">{{ student.name[0].upper() if student else 'S' }}</div>
+        <div style="min-width:0;">
+            <div class="pd-name">{{ student.name if student else 'Student Name' }}</div>
+            <div class="pd-sid">ID: {{ student.student_id if student and student.student_id else '—' }}</div>
+            <div class="pd-email">{{ student.email if student else 'student@college.edu' }}</div>
+        </div>
+    </div>
+    <div class="pd-body">
+        <div class="pd-row">
+            <i class="bi bi-building"></i>
+            <div>
+                <div class="pd-row-label">College</div>
+                <div class="pd-row-val">{{ student.college or "Not specified" if student else "—" }}</div>
+            </div>
+        </div>
+        <div class="pd-row">
+            <i class="bi bi-mortarboard"></i>
+            <div>
+                <div class="pd-row-label">Degree · Branch</div>
+                <div class="pd-row-val">{{ student.degree or "—" if student else "—" }}{% if student and student.branch %} · {{ student.branch }}{% endif %}</div>
+            </div>
+        </div>
+        <div class="pd-row">
+            <i class="bi bi-graph-up-arrow"></i>
+            <div>
+                <div class="pd-row-label">CGPA</div>
+                <div class="pd-row-val">{{ "%.2f"|format(student.cgpa) if student and student.cgpa else "Not specified" }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="pd-footer">
+        <button class="pd-btn pd-btn-edit" onclick="document.getElementById('profileDropdown').classList.remove('open'); document.getElementById('userPill').classList.remove('open'); navigateToSection('edit-profile');">
+            <i class="bi bi-pencil-square"></i> Edit Profile
+        </button>
+        <a href="{{ url_for('logout') }}" class="pd-btn pd-btn-logout">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ================================================
+     SIDEBAR
+================================================ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Navigation</div>
+    <ul class="sidebar-nav">
+        <li>
+            <a href="#" class="sidebar-nav-link active" data-section="overview">
+                <i class="bi bi-grid-1x2"></i>
+                <span>Overview</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" class="sidebar-nav-link" data-section="organizations">
+                <i class="bi bi-buildings"></i>
+                <span>Organizations</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" class="sidebar-nav-link" data-section="drives">
+                <i class="bi bi-briefcase-fill"></i>
+                <span>Placement Drives</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" class="sidebar-nav-link" data-section="applications">
+                <i class="bi bi-clock-history"></i>
+                <span>Application History</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" class="sidebar-nav-link" data-section="support">
+                <i class="bi bi-headset"></i>
+                <span>Support</span>
+            </a>
+        </li>
+    </ul>
+
+    <hr class="sidebar-divider">
+    <div class="sidebar-section-label">Account</div>
+    <ul class="sidebar-nav">
+        <li>
+            <a href="#" class="sidebar-nav-link" data-section="profile">
+                <i class="bi bi-person-circle"></i>
+                <span>My Profile</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" class="sidebar-nav-link" data-section="edit-profile">
+                <i class="bi bi-person-gear"></i>
+                <span>Edit Profile</span>
+            </a>
+        </li>
+        {% if student and student.resume_url %}
+        <li>
+            <a href="#" onclick="openResumePreviewModal(); return false;" class="sidebar-nav-link">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>My Resume</span>
+            </a>
+        </li>
+        {% endif %}
+        <li>
+            <a href="{{ url_for('logout') }}" class="sidebar-nav-link u-text-danger">
+                <i class="bi bi-box-arrow-right u-text-danger"></i>
+                <span>Logout</span>
+            </a>
+        </li>
+    </ul>
+</aside>
+
+<!-- ================================================
+     NOTIFICATION PANEL
+================================================ -->
+<aside class="notif-panel" id="notifPanel">
+    <div class="notif-panel-header">
+        <div class="notif-panel-title">
+            <i class="bi bi-bell-fill u-text-accent"></i>
+            Notifications
+            <span id="notifCountLabel" style="font-size:0.78rem;background:var(--accent);color:#fff;padding:0.1rem 0.5rem;border-radius:12px;margin-left:0.3rem;display:none;"></span>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button onclick="markAllRead()" style="font-size:0.78rem;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">Mark all read</button>
+            <button onclick="closeNotifPanel()" style="background:none;border:none;color:var(--grey-400);cursor:pointer;font-size:1.2rem;line-height:1;">×</button>
+        </div>
+    </div>
+    <div class="notif-panel-body" id="notifPanelBody">
+        <div class="notif-empty">
+            <i class="bi bi-bell-slash"></i>
+            No notifications yet
+        </div>
+    </div>
+    <div class="notif-panel-footer">
+        <span style="font-size:0.78rem;color:var(--grey-400);">Auto-refreshes every 30 seconds</span>
+    </div>
+</aside>
+
+<!-- ================================================
+     MAIN CONTENT
+================================================ -->
+<main class="main-content">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- ===== OVERVIEW SECTION ===== -->
+    <div class="content-section active" id="overview-section">
+
+        <!-- Broadcast Banner (shown if broadcast exists) -->
+        {% if broadcast %}
+        <div class="broadcast-banner" id="broadcastBanner" data-broadcast-id="{{ broadcast.id }}">
+            <div class="bb-icon"><i class="bi bi-megaphone-fill"></i></div>
+            <div class="bb-content">
+                <div class="bb-label"><i class="bi bi-pin-fill me-1"></i> Admin Announcement</div>
+                <div class="bb-subject">{{ broadcast.subject }}</div>
+                <div class="bb-msg">{{ broadcast.message }}</div>
+            </div>
+            <button class="bb-dismiss" onclick="dismissBroadcastBanner()" title="Dismiss">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Celebration Banner (if placed) -->
+        {% if selected_celebration_app %}
+            <div class="celebration-banner" id="celebrationBanner" data-app-id="{{ selected_celebration_app.id }}">
+                <span class="ce-icon"><i class="bi bi-check2-circle"></i></span>
+                <div class="ce-content">
+                    <div class="ce-text">Placement Update: You have been selected</div>
+                    <div class="ce-sub">{{ selected_celebration_app.drive.job_title }} at {{ selected_celebration_app.drive.company.company_name }}</div>
+                </div>
+                <button class="ce-dismiss" type="button" onclick="dismissCelebrationBanner()" title="Dismiss">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        {% endif %}
+
+        <!-- Profile Banner -->
+        <div class="profile-banner">
+            <div class="profile-banner-bg"></div>
+            <div class="profile-banner-dots"></div>
+
+            <div class="profile-banner-content">
+                <div class="profile-left">
+                    <div class="profile-avatar">{{ student.name[0].upper() if student else 'S' }}</div>
+                    <div class="profile-info">
+                        <h2>{{ student.name.split()[0] if student else 'Student' }}</h2>
+                        <div class="profile-sid">{{ student.student_id if student and student.student_id else 'Student ID not assigned' }}</div>
+                        <p>
+                            {{ student.degree or "Degree not set" if student else "—" }}
+                            {% if student and student.college %}&nbsp;·&nbsp;{{ student.college }}{% endif %}
+                        </p>
+                        <div class="profile-tags">
+                            {% if student and student.cgpa %}
+                            <span class="profile-tag"><i class="bi bi-star-fill"></i>CGPA {{ "%.2f"|format(student.cgpa) }}</span>
+                            {% endif %}
+                            {% if student and student.graduation_year %}
+                            <span class="profile-tag"><i class="bi bi-calendar3"></i>Class of {{ student.graduation_year }}</span>
+                            {% endif %}
+                            {% if student and student.linkedin %}
+                            <a href="{{ student.linkedin }}" target="_blank" class="profile-tag" style="color:#fff;text-decoration:none;"><i class="bi bi-linkedin"></i>LinkedIn</a>
+                            {% endif %}
+                            {% if student and student.github %}
+                            <a href="{{ student.github }}" target="_blank" class="profile-tag" style="color:#fff;text-decoration:none;"><i class="bi bi-github"></i>GitHub</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="stat-val">{{ drives|length if drives else 0 }}</div>
+                        <div class="stat-lbl">Open Drives</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-val">{{ applications|length if applications else 0 }}</div>
+                        <div class="stat-lbl">Applied</div>
+                    </div>
+                    <div class="stat-box shortlisted">
+                        <div class="stat-val">{{ applications|selectattr('status','equalto','Shortlisted')|list|length if applications else 0 }}</div>
+                        <div class="stat-lbl">Shortlisted</div>
+                    </div>
+                    <div class="stat-box placed">
+                        <div class="stat-val">{{ applications|selectattr('status','equalto','Placed')|list|length if applications else 0 }}</div>
+                        <div class="stat-lbl">Placed</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-actions-bar">
+                <button class="btn-banner btn-banner-ghost" onclick="navigateToSection('edit-profile')">
+                    <i class="bi bi-pencil-square"></i> Edit Profile
+                </button>
+                {% if student and student.resume_url %}
+                <button type="button" class="btn-banner btn-banner-ghost" onclick="openResumePreviewModal()">
+                    <i class="bi bi-file-earmark-pdf"></i> View Resume
+                </button>
+                {% else %}
+                <button class="btn-banner btn-banner-primary" onclick="navigateToSection('edit-profile')">
+                    <i class="bi bi-upload"></i> Upload Resume
+                </button>
+                {% endif %}
+                <button class="btn-banner btn-banner-primary" onclick="navigateToSection('drives')">
+                    <i class="bi bi-briefcase"></i> Browse Drives
+                </button>
+                {% if student and student.skills %}
+                <div class="banner-skills d-none d-lg-flex">
+                    {% for sk in student.skills.split(',')[:3] %}
+                    <span class="banner-skill-tag">{{ sk.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Overview Grid -->
+        <div class="two-col">
+            <div class="overview-stack">
+                <!-- Upcoming Deadlines + Interviews -->
+                <div class="card deadline-card">
+                    <div class="card-header-bar">
+                        <div class="card-title"><i class="bi bi-alarm-fill"></i> Upcoming Deadlines & Interviews</div>
+                    </div>
+                    {% set applied_ids = applications|map(attribute='drive_id')|list if applications else [] %}
+                    {% set upcoming = [] %}
+                    {% for drive in drives %}
+                        {% if drive.application_deadline %}
+                            {% set days_left = (drive.application_deadline - today.date()).days if today else 999 %}
+                            {% if days_left >= 0 and days_left <= 30 %}
+                                {% set _ = upcoming.append({'drive': drive, 'days': days_left, 'applied': drive.id in applied_ids}) %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set upcoming_sorted = upcoming|sort(attribute='days') %}
+                    <div class="deadline-scroll">
+                        {% if scheduled_interviews %}
+                            <div class="deadline-group-label">Scheduled Interviews</div>
+                            {% for iv in scheduled_interviews %}
+                                {% set days_to_iv = (iv.interview_date - today.date()).days if iv.interview_date and today else 0 %}
+                                <div class="deadline-item type-interview"
+                                     {% if iv.drive %}
+                                     onclick="return openOverviewDriveDetail({{ iv.drive.id }}, {{ iv.application_id }}, event)"
+                                     style="cursor:pointer;"
+                                     {% endif %}>
+                                    <div class="deadline-days">
+                                        <span class="d-num">{{ days_to_iv if days_to_iv >= 0 else 0 }}</span>
+                                        <span class="d-lbl">days</span>
+                                    </div>
+                                    <div class="deadline-info">
+                                        <div class="deadline-job">{{ iv.drive.job_title if iv.drive else 'Interview' }}</div>
+                                        <div class="deadline-co">
+                                            <i class="bi bi-building me-1"></i>{{ iv.drive.company.company_name if iv.drive and iv.drive.company else 'Company' }}
+                                            · <i class="bi bi-calendar-event ms-2 me-1"></i>{{ iv.interview_date.strftime('%d %b %Y') if iv.interview_date else 'TBD' }}
+                                            · {{ iv.interview_time.strftime('%I:%M %p') if iv.interview_time else 'TBD' }}
+                                            · {{ iv.mode or 'Online' }}
+                                        </div>
+                                    </div>
+                                    <span class="deadline-tag interview"><i class="bi bi-camera-video-fill"></i>Interview</span>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if scheduled_target_drives %}
+                            <div class="deadline-group-label">Scheduled Drives For You</div>
+                            {% for drive in scheduled_target_drives[:8] %}
+                            {% set days_to_publish = (drive.publish_at_ist.date() - today.date()).days if drive.publish_at_ist and today else 0 %}
+                            <div class="deadline-item type-scheduled">
+                                <div class="deadline-days {{ 'urgent' if days_to_publish <= 1 else 'soon' if days_to_publish <= 7 else 'ok' }}">
+                                    <span class="d-num">{{ days_to_publish if days_to_publish >= 0 else 0 }}</span>
+                                    <span class="d-lbl">days</span>
+                                </div>
+                                <div class="deadline-info">
+                                    <div class="deadline-job">{{ drive.job_title }}</div>
+                                    <div class="deadline-co">
+                                        <i class="bi bi-building me-1"></i>{{ drive.company.company_name }}
+                                        {% if drive.publish_at_ist %} · <i class="bi bi-broadcast me-1 ms-2"></i>Live at {{ drive.publish_at_ist.strftime('%d %b %Y, %I:%M %p') }} IST{% endif %}
+                                    </div>
+                                </div>
+                                <span class="deadline-tag scheduled"><i class="bi bi-clock-history"></i>Scheduled</span>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if upcoming_sorted %}
+                            <div class="deadline-group-label">{{ 'Top Deadlines' if not scheduled_interviews else 'Upcoming Deadlines' }}</div>
+                            {% for item in upcoming_sorted %}
+                            <div class="deadline-item"
+                                 onclick="return openOverviewDriveDetail({{ item.drive.id }}, null, event)"
+                                 style="cursor:pointer;">
+                                <div class="deadline-days {{ 'urgent' if item.days <= 3 else 'soon' if item.days <= 7 else 'ok' }}">
+                                    <span class="d-num">{{ item.days }}</span>
+                                    <span class="d-lbl">days</span>
+                                </div>
+                                <div class="deadline-info">
+                                    <div class="deadline-job">{{ item.drive.job_title }}</div>
+                                    <div class="deadline-co"><i class="bi bi-building me-1"></i>{{ item.drive.company.company_name }}</div>
+                                </div>
+                                <span class="deadline-countdown {{ 'urgent' if item.days <= 3 else 'soon' if item.days <= 7 else 'ok' }}">
+                                    {{ 'Urgent' if item.days <= 3 else 'Soon' if item.days <= 7 else 'Open' }}
+                                </span>
+                                {% if item.applied %}
+                                <span class="deadline-tag applied"><i class="bi bi-check-circle-fill"></i>Applied</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% elif not scheduled_interviews and not scheduled_target_drives %}
+                            <div class="deadline-empty">No drives closing within 30 days, no scheduled interviews, and no scheduled drives for you right now.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Application Status -->
+                <div class="card status-card">
+                    <div class="card-header-bar">
+                        <div class="card-title"><i class="bi bi-pie-chart-fill"></i> Application Status</div>
+                    </div>
+                    <div class="chart-donut-wrap">
+                        {% set total_apps = applications|length if applications else 0 %}
+                        {% if total_apps > 0 %}
+                            {% set n_applied     = applications|selectattr('status','equalto','Applied')|list|length %}
+                            {% set n_shortlisted = applications|selectattr('status','equalto','Shortlisted')|list|length %}
+                            {% set n_selected    = applications|selectattr('status','equalto','Placed')|list|length %}
+                            {% set n_rejected    = applications|selectattr('status','equalto','Rejected')|list|length %}
+                            {% set n_interview   = applications|selectattr('status','equalto','Interview')|list|length %}
+                            <div class="chart-canvas-wrap"><canvas id="statusDonut" height="200"></canvas></div>
+                            <div class="chart-legend">
+                                <div class="chart-legend-item"><div class="legend-dot" style="background:#06b6d4;"></div><span class="legend-label">Applied</span><span class="legend-val">{{ n_applied }}</span></div>
+                                <div class="chart-legend-item"><div class="legend-dot" style="background:#f59e0b;"></div><span class="legend-label">Shortlisted</span><span class="legend-val">{{ n_shortlisted }}</span></div>
+                                <div class="chart-legend-item"><div class="legend-dot" style="background:#8b5cf6;"></div><span class="legend-label">Interview</span><span class="legend-val">{{ n_interview }}</span></div>
+                                <div class="chart-legend-item"><div class="legend-dot" style="background:#10b981;"></div><span class="legend-label">Placed</span><span class="legend-val">{{ n_selected }}</span></div>
+                                <div class="chart-legend-item"><div class="legend-dot" style="background:#ef4444;"></div><span class="legend-label">Rejected</span><span class="legend-val">{{ n_rejected }}</span></div>
+                            </div>
+                            <script>
+                            window._chartData={applied:{{n_applied}},shortlisted:{{n_shortlisted}},selected:{{n_selected}},rejected:{{n_rejected}},interview:{{n_interview}}};
+                            </script>
+                        {% else %}
+                            <div style="text-align:center;padding:2rem 1rem;color:var(--grey-400);">
+                                <i class="bi bi-pie-chart" style="font-size:2.5rem;display:block;margin-bottom:0.75rem;opacity:0.4;"></i>
+                                Apply to drives to see your status chart
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Latest Drives -->
+            <div class="card latest-drives-card">
+                <div class="card-header-bar">
+                    <div class="card-title"><i class="bi bi-briefcase-fill"></i> Latest Placement Drives</div>
+                    <button class="btn-c btn-c-outline btn-c-sm" onclick="navigateToSection('drives')">View All <i class="bi bi-arrow-right"></i></button>
+                </div>
+                <div class="card-body" style="padding-top:1rem;">
+                    <div style="position:relative;margin-bottom:0.9rem;">
+                        <i class="bi bi-search" style="position:absolute;left:0.8rem;top:50%;transform:translateY(-50%);color:var(--grey-400);"></i>
+                        <input type="text" id="quickSearch" placeholder="Search drives…"
+                            style="width:100%;padding:0.55rem 0.8rem 0.55rem 2.3rem;border:1.5px solid var(--grey-200);border-radius:8px;font-size:0.87rem;background:var(--grey-50);outline:none;font-family:'DM Sans',sans-serif;">
+                    </div>
+                    <div id="quickDriveList" class="quick-drive-scroll">
+                    {% if drives %}
+                        {% for drive in (drives|sort(attribute='updated_at', reverse=true)) %}
+                        <div class="quick-item quick-drive-item{% if not viewed_drive_ids or drive.id not in viewed_drive_ids %} unread-drive{% endif %}"
+                             data-drive-id="{{ drive.id }}"
+                             data-title="{{ drive.job_title|lower }}"
+                             data-company="{{ drive.company.company_name|lower }}"
+                             onclick="return openOverviewDriveDetail({{ drive.id }}, null, event)">
+                            <div class="quick-item-ico"><i class="bi bi-building-fill"></i></div>
+                            <div class="u-flex-1-min0">
+                                <div class="quick-item-title">{{ drive.job_title }}</div>
+                                <div class="quick-item-sub">
+                                    <i class="bi bi-building"></i>{{ drive.company.company_name }}
+                                    {% if drive.location %} · <i class="bi bi-geo-alt"></i>{{ drive.location }}{% endif %}
+                                </div>
+                                {% if drive.application_deadline %}
+                                    {% set today_date = today.date() if today else none %}
+                                    {% if today_date %}
+                                        {% set days_left = (drive.application_deadline - today_date).days %}
+                                        {% if days_left >= 0 and days_left <= 7 %}
+                                        <div class="quick-deadline"><i class="bi bi-clock-fill"></i> {{ days_left }} day{{ 's' if days_left != 1 else '' }} left</div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% if drive.salary %}
+                            <div class="quick-item-sal">₹{{ drive.salary }} LPA</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <p id="noQuickResults" style="display:none;color:var(--grey-400);text-align:center;padding:1rem;font-size:0.875rem;">No matching drives found</p>
+                    {% else %}
+                        <p style="color:var(--grey-400);text-align:center;padding:1.5rem;font-size:0.875rem;">No active drives yet. Check back soon!</p>
+                    {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Applications (Overview) -->
+        {% if applications %}
+        <div class="card mt-3">
+            <div class="card-header-bar">
+                <div class="card-title"><i class="bi bi-file-earmark-text-fill"></i> Recent Applications</div>
+                <button class="btn-c btn-c-outline btn-c-sm" onclick="navigateToSection('applications')">Full History <i class="bi bi-arrow-right"></i></button>
+            </div>
+            <div class="recent-apps-list">
+                {% for app in (applications|sort(attribute='application_date', reverse=true))[:5] %}
+                <div class="recent-app-item" onclick="return openAppDetailById({{ app.id }}, true, event)">
+                    <div class="ra-company-logo">{{ app.drive.company.company_name[0].upper() }}</div>
+                    <div class="u-flex-1-min0">
+                        <div class="ra-title">{{ app.drive.job_title }}</div>
+                        <div class="ra-company"><i class="bi bi-building me-1"></i>{{ app.drive.company.company_name }}</div>
+                        {% if app.remark %}
+                        <div class="ra-remark"><i class="bi bi-chat-quote me-1"></i>{{ app.remark[:80] }}{% if app.remark|length > 80 %}…{% endif %}</div>
+                        {% endif %}
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <span class="badge-pill badge-{{ app.status|lower }}">{{ app.status }}</span>
+                        <div style="font-size:0.72rem;color:var(--grey-400);margin-top:4px;">{{ app.application_date.strftime('%d %b') if app.application_date else '' }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- ===== MY PROFILE SECTION ===== -->
+    <div class="content-section" id="profile-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-person-circle"></i> My Profile</h1>
+            <button class="btn-c btn-c-primary" onclick="navigateToSection('edit-profile')"><i class="bi bi-pencil-square"></i> Edit Profile</button>
+        </div>
+
+        <div class="profile-view-card">
+            <div class="profile-view-header">
+                <div class="profile-view-avatar">{{ student.name[0].upper() if student else 'S' }}</div>
+                <div class="u-flex-1-min0">
+                    <div class="profile-view-name">{{ student.name if student else 'Student Name' }}</div>
+                    <div class="profile-view-sid">{{ student.student_id if student and student.student_id else 'ID not assigned' }}</div>
+                    <div class="profile-view-email">{{ student.email if student else '—' }}</div>
+                </div>
+            </div>
+
+            <div class="profile-section-grid">
+                <!-- Academic Info -->
+                <div class="profile-field-group">
+                    <div class="profile-field-group-title"><i class="bi bi-mortarboard-fill"></i> Academic Details</div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">College / Institution</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.college }}">{{ student.college if student and student.college else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Degree</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.degree }}">{{ student.degree if student and student.degree else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Branch / Specialization</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.branch }}">{{ student.branch if student and student.branch else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Year of Study</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.year_of_study }}">{{ student.year_of_study if student and student.year_of_study else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Graduation Year</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.graduation_year }}">{{ student.graduation_year if student and student.graduation_year else 'Not specified' }}</div>
+                    </div>
+                </div>
+
+                <!-- Academic Scores -->
+                <div class="profile-field-group">
+                    <div class="profile-field-group-title"><i class="bi bi-graph-up-arrow"></i> Academic Scores</div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">CGPA</div>
+                        <div class="profile-field-val {{ 'empty' if not student or student.cgpa is none }}">{{ "%.2f"|format(student.cgpa) if student and student.cgpa is not none else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">10th Percentage</div>
+                        <div class="profile-field-val {{ 'empty' if not student or student.tenth_percent is none }}">{{ student.tenth_percent if student and student.tenth_percent is not none else 'Not specified' }}{{ '%' if student and student.tenth_percent is not none else '' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">12th Percentage</div>
+                        <div class="profile-field-val {{ 'empty' if not student or student.twelfth_percent is none }}">{{ student.twelfth_percent if student and student.twelfth_percent is not none else 'Not specified' }}{{ '%' if student and student.twelfth_percent is not none else '' }}</div>
+                    </div>
+                </div>
+
+                <!-- Contact & Links -->
+                <div class="profile-field-group">
+                    <div class="profile-field-group-title"><i class="bi bi-person-lines-fill"></i> Contact & Links</div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Email</div>
+                        <div class="profile-field-val">{{ student.email if student else '—' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Contact / Mobile</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.contact }}">{{ student.contact if student and student.contact else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Date of Birth</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.dob }}">{{ student.dob if student and student.dob else 'Not specified' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">LinkedIn</div>
+                        <div class="profile-field-val">
+                            {% if student and student.linkedin %}
+                            <a href="{{ student.linkedin }}" target="_blank" class="u-link-accent">{{ student.linkedin|truncate(40) }}</a>
+                            {% else %}<span class="empty">Not specified</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">GitHub</div>
+                        <div class="profile-field-val">
+                            {% if student and student.github %}
+                            <a href="{{ student.github }}" target="_blank" class="u-link-accent">{{ student.github|truncate(40) }}</a>
+                            {% else %}<span class="empty">Not specified</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills & Resume -->
+                <div class="profile-field-group">
+                    <div class="profile-field-group-title"><i class="bi bi-stars"></i> Skills & Resume</div>
+                    <div class="profile-field">
+                        <div class="profile-field-label">Skills</div>
+                        <div class="profile-field-val">
+                            {% if student and student.skills %}
+                                {% for sk in student.skills.split(',') %}
+                                <span class="skill-chip">{{ sk.strip() }}</span>
+                                {% endfor %}
+                            {% else %}<span class="empty">No skills listed</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="profile-field u-mt-075">
+                        <div class="profile-field-label">Resume</div>
+                        <div class="profile-field-val">
+                            {% if student and student.resume_url %}
+                            <a href="#" onclick="openResumePreviewModal(); return false;" class="btn-c btn-c-outline btn-c-sm u-no-underline">
+                                <i class="bi bi-file-earmark-pdf"></i> View / Download Resume
+                            </a>
+                            {% else %}<span class="empty">No resume uploaded</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="profile-field u-mt-075">
+                        <div class="profile-field-label">Bio</div>
+                        <div class="profile-field-val {{ 'empty' if not student or not student.bio }}" style="line-height:1.6;">{{ student.bio if student and student.bio else 'No bio added' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ORGANIZATIONS SECTION ===== -->
+    <div class="content-section" id="organizations-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-buildings"></i> Partner Organizations</h1>
+        </div>
+
+        {% if drives %}
+        <div class="search-bar">
+            <div class="search-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" class="search-input" id="orgSearch" placeholder="Search by company name…">
+            </div>
+            <select class="filter-select" id="orgSectorFilter">
+                <option value="">All Sectors</option>
+                {% set seen_ind = [] %}
+                {% for drive in drives %}
+                    {% if drive.company.industry and drive.company.industry not in seen_ind %}
+                        {% set _ = seen_ind.append(drive.company.industry) %}
+                        <option value="{{ drive.company.industry|lower }}">{{ drive.company.industry }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+
+            {% set companies_seen = [] %}
+            <div class="companies-grid" id="companiesGrid">
+            {% for drive in drives %}
+                {% if drive.company_id not in companies_seen %}
+                    {% set _ = companies_seen.append(drive.company_id) %}
+                    {% set cid = drive.company_id %}
+                    {% set company_drives = drives|selectattr('company_id','equalto',cid)|list %}
+                    {% set applied_for_co = applications|selectattr('drive.company_id','equalto',cid)|list if applications else [] %}
+                    {% set selected_for_co = applied_for_co|selectattr('status','equalto','Placed')|list %}
+
+                    <div class="company-card org-filterable"
+                         data-name="{{ drive.company.company_name|lower }}"
+                         data-sector="{{ drive.company.industry|lower if drive.company.industry else '' }}"
+                         data-industry="{{ drive.company.industry|lower if drive.company.industry else '' }}"
+                         data-location="{{ drive.company.location|lower if drive.company.location else '' }}"
+                         data-bs-toggle="modal"
+                         data-bs-target="#coModal{{ cid }}">
+                        <div class="company-card-top">
+                            <div class="company-card-logo">{{ drive.company.company_name[0].upper() }}</div>
+                            <div style="min-width:0;">
+                                <div class="company-card-name">{{ drive.company.company_name }}</div>
+                                <div class="company-card-industry"><i class="bi bi-briefcase"></i> {{ drive.company.industry or "Industry" }}</div>
+                            </div>
+                        </div>
+                        <div class="company-card-body">
+                            <div class="company-card-info">
+                                {% if drive.company.location %}
+                                <div class="co-info-row"><i class="bi bi-geo-alt-fill"></i>{{ drive.company.location }}</div>
+                                {% endif %}
+                                {% if drive.company.company_size %}
+                                <div class="co-info-row"><i class="bi bi-people-fill"></i>{{ drive.company.company_size }} employees</div>
+                                {% endif %}
+                                {% if drive.company.website %}
+                                <div class="co-info-row" onclick="event.stopPropagation()"><i class="bi bi-globe"></i><a href="{{ drive.company.website }}" target="_blank" class="u-link-accent">{{ drive.company.website|truncate(28, true) }}</a></div>
+                                {% endif %}
+                                {% if drive.company.description %}
+                                <div class="co-info-row" style="align-items:flex-start;"><i class="bi bi-info-circle" style="margin-top:2px;"></i><span style="line-height:1.5;font-size:0.8rem;color:var(--grey-600);">{{ drive.company.description[:80] }}{% if drive.company.description|length > 80 %}…{% endif %}</span></div>
+                                {% endif %}
+                            </div>
+                            <div class="company-card-stats">
+                                <div class="co-stat">
+                                    <div class="co-stat-val primary">{{ company_drives|length }}</div>
+                                    <div class="co-stat-lbl">Drives</div>
+                                </div>
+                                <div class="co-stat">
+                                    <div class="co-stat-val info">{{ applied_for_co|length }}</div>
+                                    <div class="co-stat-lbl">Applied</div>
+                                </div>
+                                <div class="co-stat">
+                                    <div class="co-stat-val success">{{ selected_for_co|length }}</div>
+                                    <div class="co-stat-lbl">Placed</div>
+                                </div>
+                            </div>
+                            <button class="company-view-btn">
+                                <i class="bi bi-eye"></i> View Opportunities
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Company Modal -->
+                    <div class="modal fade" id="coModal{{ cid }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-content u-card-overflow">
+                                <div class="modal-header-dark">
+                                    <div class="u-flex-center-gap1">
+                                        <div style="width:54px;height:54px;border-radius:12px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;border:2px solid rgba(255,255,255,0.25);">
+                                            {{ drive.company.company_name[0].upper() }}
+                                        </div>
+                                        <div>
+                                            <div class="modal-title-custom">{{ drive.company.company_name }}</div>
+                                            <small class="u-op70-white">{{ drive.company.industry or 'Industry not specified' }}</small>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body" style="padding:1.5rem;">
+                                    <div class="modal-stat-strip">
+                                        <div class="mss-box"><div class="mss-val u-text-accent">{{ company_drives|length }}</div><div class="mss-lbl">Open Roles</div></div>
+                                        <div class="mss-box"><div class="mss-val" style="color:var(--info);">{{ applied_for_co|length }}</div><div class="mss-lbl">Applied</div></div>
+                                        <div class="mss-box"><div class="mss-val u-text-success">{{ selected_for_co|length }}</div><div class="mss-lbl">Placed</div></div>
+                                    </div>
+
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-building me-1"></i>Company Overview</div>
+                                        {% if drive.company.description %}
+                                        <p style="font-size:0.9rem;color:var(--grey-600);line-height:1.6;margin-bottom:0.6rem;">{{ drive.company.description }}</p>
+                                        {% endif %}
+                                        <div class="company-overview-grid">
+                                            {% if drive.company.location %}
+                                            <div class="co-overview-item"><i class="bi bi-geo-alt-fill"></i><div><div class="co-overview-label">Location</div><div class="co-overview-value">{{ drive.company.location }}</div></div></div>
+                                            {% endif %}
+                                            {% if drive.company.company_size %}
+                                            <div class="co-overview-item"><i class="bi bi-people-fill"></i><div><div class="co-overview-label">Company Size</div><div class="co-overview-value">{{ drive.company.company_size }} employees</div></div></div>
+                                            {% endif %}
+                                            {% if drive.company.industry %}
+                                            <div class="co-overview-item"><i class="bi bi-briefcase-fill"></i><div><div class="co-overview-label">Industry</div><div class="co-overview-value">{{ drive.company.industry }}</div></div></div>
+                                            {% endif %}
+                                            {% if drive.company.website %}
+                                            <div class="co-overview-item"><i class="bi bi-globe2"></i><div><div class="co-overview-label">Website</div><div class="co-overview-value"><a href="{{ drive.company.website }}" target="_blank" class="u-link-accent">{{ drive.company.website }}</a></div></div></div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div style="font-weight:700;color:var(--grey-700);margin-bottom:1rem;font-size:0.95rem;">Open Positions ({{ company_drives|length }})</div>
+                                    {% for d in company_drives %}
+                                    <div class="co-drive-mini">
+                                        <div class="co-drive-mini-top">
+                                            <div>
+                                                <div style="font-weight:700;font-size:1.03rem;color:var(--grey-700);font-family:'Outfit',sans-serif;">{{ d.job_title }}</div>
+                                                {% if d.job_type %}<span class="badge-pill badge-open" style="margin-top:4px;font-size:0.68rem;">{{ d.job_type }}</span>{% endif %}
+                                            </div>
+                                            {% if d.salary %}
+                                            <div class="salary-subtle">₹{{ d.salary }} LPA</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="co-drive-mini-meta">
+                                            {% if d.location %}<span><i class="bi bi-geo-alt me-1 u-text-accent"></i>{{ d.location }}</span>{% endif %}
+                                            {% if d.work_mode %}<span><i class="bi bi-laptop me-1 u-text-accent"></i>{{ d.work_mode }}</span>{% endif %}
+                                            {% if d.application_deadline %}<span style="font-weight:700;color:var(--warning);"><i class="bi bi-calendar-x me-1"></i>{{ d.application_deadline.strftime('%d %b %Y') }}</span>{% endif %}
+                                        </div>
+                                        {% if d.required_skills %}
+                                        <div class="co-drive-mini-skills">
+                                            {% for sk in d.required_skills.split(',')[:5] %}
+                                            <span class="skill-chip">{{ sk.strip() }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
+                                            <button class="btn-c btn-c-outline btn-c-sm"
+                                                onclick="openDriveFromOrgModal(this, {{ d.id }});">
+                                                <i class="bi bi-eye"></i> View Full Details
+                                            </button>
+                                            {% set already = applications|selectattr('drive_id','equalto',d.id)|list|length > 0 if applications else false %}
+                                            {% if already %}
+                                            <button class="btn-c btn-c-sm btn-c-disabled" disabled><i class="bi bi-check-circle"></i> Applied</button>
+                                            {% else %}
+                                            <a href="{{ url_for('apply_to_drive', drive_id=d.id) }}" class="btn-c btn-c-sm btn-c-primary" onclick="return confirm('Apply to {{ d.job_title }} at {{ d.company.company_name }}?')">
+                                                <i class="bi bi-send"></i> Apply Now
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-buildings"></i>
+                <h5>No Partner Organizations Yet</h5>
+                <p>Companies with approved placement drives will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== PLACEMENT DRIVES SECTION ===== -->
+    <div class="content-section" id="drives-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-briefcase-fill"></i> Placement Drives</h1>
+            <span style="font-size:0.875rem;color:var(--grey-400);">{{ drives|length if drives else 0 }} active drive{{ 's' if (drives|length if drives else 0) != 1 else '' }}</span>
+        </div>
+
+        <div class="stats-mini-grid">
+            <div class="stats-mini c-open">
+                <div class="val">{{ drives|selectattr('status','equalto','Approved')|list|length if drives else 0 }}</div>
+                <div class="lbl">Active Drives</div>
+            </div>
+            <div class="stats-mini c-applied">
+                <div class="val">{{ applications|length if applications else 0 }}</div>
+                <div class="lbl">Applied</div>
+            </div>
+            <div class="stats-mini c-shortlisted">
+                <div class="val">{{ applications|selectattr('status','in',['Shortlisted','Interview'])|list|length if applications else 0 }}</div>
+                <div class="lbl">Shortlisted</div>
+            </div>
+            <div class="stats-mini c-placed">
+                <div class="val">{{ applications|selectattr('status','equalto','Placed')|list|length if applications else 0 }}</div>
+                <div class="lbl">Placed</div>
+            </div>
+        </div>
+
+        {% if drives %}
+        <div class="search-bar">
+            <div class="search-wrap" style="flex:2;">
+                <i class="bi bi-search"></i>
+                <input type="text" class="search-input" id="driveSearch" placeholder="Search approved drives by company, position, or skills…">
+            </div>
+        </div>
+
+        <div class="drives-list" id="drivesList">
+            {% for drive in drives %}
+            {% set already_applied = applications|selectattr('drive_id','equalto',drive.id)|list|length > 0 if applications else false %}
+            <div class="drive-card drive-filterable"
+                 data-drive-id="{{ drive.id }}"
+                 data-title="{{ drive.job_title|lower }}"
+                 data-position="{{ drive.job_title|lower }}"
+                 data-company="{{ drive.company.company_name|lower }}"
+                 data-location="{{ drive.location|lower if drive.location else '' }}"
+                 data-sector="{{ drive.company.industry|lower if drive.company.industry else '' }}"
+                 data-industry="{{ drive.company.industry|lower if drive.company.industry else '' }}"
+                 data-skills="{{ drive.required_skills|lower if drive.required_skills else '' }}"
+                 data-jobtype="{{ drive.job_type|lower if drive.job_type else '' }}">
+
+                <div class="drive-card-header">
+                    <div class="drive-company-row">
+                        <div class="drive-company-logo">{{ drive.company.company_name[0].upper() }}</div>
+                        <div class="u-flex-1-min0">
+                            <div class="drive-job-title">{{ drive.job_title }}</div>
+                            <div class="drive-company-name">
+                                <i class="bi bi-building"></i>{{ drive.company.company_name }}
+                                {% if drive.company.industry %}<span>· {{ drive.company.industry }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;flex-shrink:0;">
+                        {% if drive.salary %}
+                        <div class="salary-subtle">₹{{ drive.salary }} LPA</div>
+                        {% endif %}
+                        {% if drive.job_type %}
+                        <span class="badge-pill" style="background:rgba(37,99,235,0.1);color:var(--accent);">{{ drive.job_type }}</span>
+                        {% endif %}
+                        {% if already_applied %}
+                        <span class="badge-pill badge-applied"><i class="bi bi-check-circle-fill"></i> Applied</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="drive-card-meta">
+                    {% if drive.location %}
+                    <div class="drive-meta-pill"><i class="bi bi-geo-alt-fill"></i><strong>{{ drive.location }}</strong></div>
+                    {% endif %}
+                    {% if drive.work_mode %}
+                    <div class="drive-meta-pill"><i class="bi bi-laptop"></i><strong>{{ drive.work_mode }}</strong></div>
+                    {% endif %}
+                    {% if drive.vacancies %}
+                    <div class="drive-meta-pill"><i class="bi bi-people-fill"></i><strong>{{ drive.vacancies }} vacancies</strong></div>
+                    {% endif %}
+                    {% if drive.experience_level %}
+                    <div class="drive-meta-pill"><i class="bi bi-award"></i><strong>{{ drive.experience_level }}</strong></div>
+                    {% endif %}
+                    {% if drive.application_deadline %}
+                    <div class="drive-meta-pill deadline"><i class="bi bi-calendar-x-fill"></i>Deadline: <strong>{{ drive.application_deadline.strftime('%d %b %Y') }}</strong></div>
+                    {% endif %}
+                </div>
+
+                {% if drive.required_skills %}
+                <div class="drive-card-skills">
+                    <span style="font-size:0.72rem;color:var(--grey-400);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-right:0.4rem;">Skills:</span>
+                    {% for sk in drive.required_skills.split(',')[:6] %}
+                    <span class="skill-chip">{{ sk.strip() }}</span>
+                    {% endfor %}
+                    {% if drive.required_skills.split(',')|length > 6 %}
+                    <span style="font-size:0.75rem;color:var(--grey-400);">+{{ drive.required_skills.split(',')|length - 6 }} more</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if drive.job_description %}
+                <div class="drive-card-desc" style="padding:0.9rem 1.5rem;font-size:0.9rem;color:var(--grey-600);line-height:1.6;background:var(--grey-50);border-bottom:1px solid var(--grey-100);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                    {{ drive.job_description }}
+                </div>
+                {% endif %}
+
+                <div class="drive-card-footer">
+                    <button class="btn-c btn-c-outline btn-c-sm" data-bs-toggle="modal" data-bs-target="#driveModal{{ drive.id }}">
+                        <i class="bi bi-eye"></i> Full Details
+                    </button>
+                    {% if not already_applied %}
+                    <a href="{{ url_for('apply_to_drive', drive_id=drive.id, section='drives') }}"
+                       class="btn-c btn-c-primary btn-c-sm"
+                       onclick="return confirm('Apply to {{ drive.job_title }} at {{ drive.company.company_name }}?')">
+                        <i class="bi bi-send-fill"></i> Apply Now
+                    </a>
+                    {% else %}
+                    <button class="btn-c btn-c-disabled btn-c-sm" disabled><i class="bi bi-check-circle"></i> Already Applied</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Drive Detail Modal -->
+            <div class="modal fade" id="driveModal{{ drive.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content drive-modal-content u-card-overflow">
+                        <div class="modal-header-dark">
+                            <div class="u-flex-center-gap1">
+                                <div style="width:54px;height:54px;border-radius:12px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;border:2px solid rgba(255,255,255,0.25);">
+                                    {{ drive.company.company_name[0].upper() }}
+                                </div>
+                                <div>
+                                    <div class="modal-title-custom">{{ drive.job_title }}</div>
+                                    <small style="opacity:0.85;color:#fff;">{{ drive.company.company_name }}</small>
+                                    {% if drive.company.industry %}
+                                    <div><span class="drive-modal-header-badge"><i class="bi bi-briefcase-fill"></i>{{ drive.company.industry }}</span></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body drive-modal-body" style="padding:1.25rem 1.25rem 1rem;">
+                            <div class="drive-key-stats">
+                                <div class="drive-key-stat">
+                                    <i class="bi bi-cash-coin"></i>
+                                    <div class="drive-key-stat-k">Salary</div>
+                                    <div class="drive-key-stat-v">{% if drive.salary %}₹{{ drive.salary }} LPA{% else %}Not disclosed{% endif %}</div>
+                                </div>
+                                <div class="drive-key-stat">
+                                    <i class="bi bi-geo-alt-fill"></i>
+                                    <div class="drive-key-stat-k">Location</div>
+                                    <div class="drive-key-stat-v">{{ drive.location or 'TBD' }}</div>
+                                </div>
+                                <div class="drive-key-stat">
+                                    <i class="bi bi-people-fill"></i>
+                                    <div class="drive-key-stat-k">Vacancies</div>
+                                    <div class="drive-key-stat-v">{{ drive.vacancies or 'TBD' }}</div>
+                                </div>
+                                <div class="drive-key-stat">
+                                    <i class="bi bi-calendar-event-fill"></i>
+                                    <div class="drive-key-stat-k">Deadline</div>
+                                    <div class="drive-key-stat-v">{{ drive.application_deadline.strftime('%d %b %Y') if drive.application_deadline else 'TBD' }}</div>
+                                </div>
+                            </div>
+                            <div class="drive-modal-layout">
+                                <div class="drive-modal-side">
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-lightning-charge"></i>Quick Facts</div>
+                                        <div class="drive-quick-facts">
+                                            {% if drive.job_type %}
+                                            <div class="drive-quick-fact">
+                                                <i class="bi bi-briefcase-fill"></i>
+                                                <div class="detail-k">Job Type</div>
+                                                <div class="drive-quick-fact-v">{{ drive.job_type }}</div>
+                                            </div>
+                                            {% endif %}
+                                            {% if drive.work_mode %}
+                                            <div class="drive-quick-fact">
+                                                <i class="bi bi-laptop"></i>
+                                                <div class="detail-k">Work Mode</div>
+                                                <div class="drive-quick-fact-v">{{ drive.work_mode }}</div>
+                                            </div>
+                                            {% endif %}
+                                            {% if drive.experience_level %}
+                                            <div class="drive-quick-fact">
+                                                <i class="bi bi-award-fill"></i>
+                                                <div class="detail-k">Experience</div>
+                                                <div class="drive-quick-fact-v">{{ drive.experience_level }}</div>
+                                            </div>
+                                            {% endif %}
+                                            {% if drive.vacancies %}
+                                            <div class="drive-quick-fact">
+                                                <i class="bi bi-people-fill"></i>
+                                                <div class="detail-k">Openings</div>
+                                                <div class="drive-quick-fact-v">{{ drive.vacancies }}</div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-building"></i>About {{ drive.company.company_name }}</div>
+                                        <div class="drive-company-meta-grid">
+                                            {% if drive.company.industry %}<div class="drive-company-meta-item"><div class="detail-k">Industry</div><div class="detail-v">{{ drive.company.industry }}</div></div>{% endif %}
+                                            {% if drive.company.location %}<div class="drive-company-meta-item"><div class="detail-k">Headquarters</div><div class="detail-v">{{ drive.company.location }}</div></div>{% endif %}
+                                            {% if drive.company.company_size %}<div class="drive-company-meta-item"><div class="detail-k">Company Size</div><div class="detail-v">{{ drive.company.company_size }}</div></div>{% endif %}
+                                            {% if drive.company.website %}<div class="drive-company-meta-item"><div class="detail-k">Website</div><div class="detail-v"><a href="{{ drive.company.website }}" target="_blank" class="u-link-accent">{{ drive.company.website }}</a></div></div>{% endif %}
+                                        </div>
+                                        {% if drive.company.description %}
+                                        <p class="drive-detail-text" style="margin-top:0.6rem;">{{ drive.company.description }}</p>
+                                        {% endif %}
+                                        {% if drive.company.website %}
+                                        <a href="{{ drive.company.website }}" target="_blank" class="btn-c btn-c-outline btn-c-sm u-mt-075">
+                                            <i class="bi bi-box-arrow-up-right"></i> Visit Website
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="drive-modal-main">
+                                    {% if drive.job_description %}
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-file-text"></i>Job Description</div>
+                                        <p class="drive-detail-text">{{ drive.job_description }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if drive.eligibility_criteria %}
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-clipboard-check"></i>Eligibility Criteria</div>
+                                        <div class="eligibility-box">
+                                            <ul class="eligibility-list">
+                                                {% for criterion in drive.eligibility_criteria.split(',') %}
+                                                <li>{{ criterion.strip() }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if drive.required_skills %}
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-stars"></i>Required Skills</div>
+                                        <div class="drive-skill-wrap">
+                                            {% for sk in drive.required_skills.split(',') %}
+                                            <span class="skill-chip">{{ sk.strip() }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if drive.selection_process %}
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-list-ol"></i>Selection Process</div>
+                                        <div class="process-steps">
+                                            {% for round_name in drive.selection_process.split(',') %}
+                                            <div class="process-step">{{ round_name.strip() }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if drive.additional_notes %}
+                                    <div class="drive-detail-section">
+                                        <div class="drive-detail-section-title"><i class="bi bi-info-circle"></i>Additional Notes</div>
+                                        <p class="drive-detail-text">{{ drive.additional_notes }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="border-top:1px solid var(--grey-200);padding:1.25rem 1.5rem;">
+                            <button class="btn-c btn-c-outline" data-bs-dismiss="modal">Close</button>
+                            {% if not already_applied %}
+                            <a href="{{ url_for('apply_to_drive', drive_id=drive.id, section='drives') }}"
+                               class="btn-c btn-c-primary"
+                               onclick="return confirm('Apply to {{ drive.job_title }}?')">
+                                <i class="bi bi-send-fill"></i> Apply Now
+                            </a>
+                            {% else %}
+                            <button class="btn-c btn-c-disabled" disabled><i class="bi bi-check-circle"></i> Already Applied</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-briefcase"></i>
+                <h5>No Active Placement Drives</h5>
+                <p>New drives will appear here once approved. Stay tuned!</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== APPLICATION HISTORY SECTION ===== -->
+    <div class="content-section" id="applications-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-clock-history"></i> Application History</h1>
+        </div>
+
+        {% if scheduled_interviews %}
+        <div class="app-interview-alert">
+            <div class="app-interview-alert-head">
+                <div class="app-interview-alert-title"><i class="bi bi-camera-video-fill"></i> You have {{ scheduled_interviews|length }} interview{{ 's' if scheduled_interviews|length != 1 else '' }} scheduled. Stay prepared!</div>
+            </div>
+            {% for iv in scheduled_interviews %}
+            <div class="app-interview-row">
+                <div class="app-interview-logo">{{ iv.drive.company.company_name[0].upper() if iv.drive and iv.drive.company else 'C' }}</div>
+                <div class="app-interview-text">
+                    <strong>{{ iv.drive.job_title if iv.drive else 'Interview' }}</strong> · {{ iv.drive.company.company_name if iv.drive and iv.drive.company else 'Company' }}
+                    <br>{{ iv.interview_date.strftime('%d %b %Y') if iv.interview_date else 'TBD' }} {{ iv.interview_time.strftime('%I:%M %p') if iv.interview_time else '' }} — {{ iv.mode or 'Online' }}
+                </div>
+                <button class="btn-interview-view" type="button" onclick="openAppDetailById({{ iv.application_id }})">View</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Mini Stats -->
+        <div class="stats-mini-grid">
+            <div class="stats-mini c-applied">
+                <div class="val">{{ applications|length if applications else 0 }}</div>
+                <div class="lbl">Total Applied</div>
+            </div>
+            <div class="stats-mini c-shortlisted">
+                <div class="val">{{ applications|selectattr('status','in',['Shortlisted','Interview'])|list|length if applications else 0 }}</div>
+                <div class="lbl">Shortlisted</div>
+            </div>
+            <div class="stats-mini c-placed">
+                <div class="val">{{ applications|selectattr('status','equalto','Placed')|list|length if applications else 0 }}</div>
+                <div class="lbl">Placed</div>
+            </div>
+            <div class="stats-mini c-rejected">
+                <div class="val">{{ applications|selectattr('status','equalto','Rejected')|list|length if applications else 0 }}</div>
+                <div class="lbl">Not Moved Forward</div>
+            </div>
+        </div>
+
+        {% if applications %}
+        <!-- Search & Filter -->
+        <div class="search-bar" style="margin-bottom:1.25rem;">
+            <div class="search-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" class="search-input" id="appSearch" placeholder="Search by company or job title…">
+            </div>
+            <select class="filter-select" id="appStatusFilter">
+                <option value="">All Statuses</option>
+                <option value="applied">Applied</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="interview">Interview</option>
+                <option value="placed">Placed</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+
+        <div class="table-wrap">
+            <table class="app-table" id="appTable">
+                <thead>
+                    <tr>
+                        <th style="width:56px;">#</th>
+                        <th>Company</th>
+                        <th>Position</th>
+                        <th>Package</th>
+                        <th>Applied On</th>
+                        <th>Status</th>
+                        <th>Company Feedback</th>
+                        <th>Interview Status</th>
+                        <th style="width:60px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for app in (applications|sort(attribute='application_date', reverse=true)) %}
+                <tr class="app-table-row row-{{ app.status|lower }}"
+                    data-app-id="{{ app.id }}"
+                    data-company="{{ app.drive.company.company_name|lower }}"
+                    data-title="{{ app.drive.job_title|lower }}"
+                    data-status="{{ app.status|lower }}"
+                    onclick="openAppDetailModal(this)"
+                    data-job="{{ app.drive.job_title }}"
+                    data-company-name="{{ app.drive.company.company_name }}"
+                    data-industry="{{ app.drive.company.industry or '' }}"
+                    data-salary="{{ app.drive.salary or '' }}"
+                    data-location="{{ app.drive.location or '' }}"
+                    data-deadline="{{ app.drive.application_deadline.strftime('%d %b %Y') if app.drive.application_deadline else '' }}"
+                    data-date="{{ app.application_date.strftime('%d %b %Y') if app.application_date else '' }}"
+                    data-remark="{{ app.remark or '' }}"
+                    data-drive-status="{{ app.drive.status }}"
+                    data-eligibility="{{ app.drive.eligibility_criteria or '' }}"
+                    data-desc="{{ app.drive.job_description[:200] if app.drive.job_description else '' }}"
+                    data-website="{{ app.drive.company.website or '' }}"
+                    data-skills="{{ app.drive.required_skills or '' }}"
+                    data-selection-process="{{ app.drive.selection_process or '' }}"
+                    data-interview-schedule-id="{{ app.interview_schedule.id if app.interview_schedule else '' }}"
+                    data-interview-schedule-status="{{ app.interview_schedule.schedule_status if app.interview_schedule and app.interview_schedule.schedule_status else '' }}">
+                    <td style="font-weight:700;color:var(--grey-400);">{{ loop.revindex }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:0.65rem;">
+                            <div class="app-company-logo">{{ app.drive.company.company_name[0].upper() }}</div>
+                            <div>
+                                <div style="font-weight:600;font-size:0.875rem;">{{ app.drive.company.company_name }}</div>
+                                <div style="font-size:0.75rem;color:var(--grey-400);">{{ app.drive.company.industry or '' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-weight:600;">{{ app.drive.job_title }}</td>
+                    <td style="font-weight:600;color:var(--grey-700);">{{ '₹' + app.drive.salary|string + ' LPA' if app.drive.salary else '—' }}</td>
+                    <td style="color:var(--grey-400);font-size:0.875rem;">{{ app.application_date.strftime('%d %b %Y') if app.application_date else '—' }}</td>
+                    <td><span class="badge-pill badge-{{ app.status|lower }}">{{ app.status }}</span></td>
+                    <td style="font-size:0.82rem;color:var(--grey-600);font-style:{{ 'italic' if app.remark else 'normal' }};">
+                        {% if app.remark %}
+                        <span title="{{ app.remark }}">{{ app.remark[:50] }}{% if app.remark|length > 50 %}…{% endif %}</span>
+                        {% else %}
+                        <span style="color:var(--grey-300);">No feedback yet</span>
+                        {% endif %}
+                    </td>
+                    <td onclick="event.stopPropagation();">
+                        {% if app.interview_schedule and app.interview_schedule.schedule_status == 'Scheduled' %}
+                        <span class="badge-pill badge-interview">Scheduled</span>
+                        {% elif app.interview_schedule and app.interview_schedule.schedule_status == 'Completed' %}
+                        <span class="badge-pill badge-selected">Completed</span>
+                        {% elif app.interview_schedule and app.interview_schedule.schedule_status == 'Cancelled' %}
+                        <span class="badge-pill badge-rejected">Cancelled</span>
+                        {% else %}
+                        <span style="color:var(--grey-300);font-size:0.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <i class="bi bi-chevron-right" style="color:var(--grey-300);"></i>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-clock-history"></i>
+                <h5>No Applications Yet</h5>
+                <p>Apply to placement drives to track your application history here.</p>
+                <button class="btn-c btn-c-primary mt-3" onclick="navigateToSection('drives')"><i class="bi bi-briefcase"></i> Browse Drives</button>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== SUPPORT SECTION ===== -->
+    <div class="content-section" id="support-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-headset"></i> Support</h1>
+        </div>
+        <div class="support-grid">
+            <div>
+                <form method="POST" action="{{ url_for('submit_support_ticket', section='support') }}" class="support-form-card">
+                    <div class="support-form-title">Submit a Support Request</div>
+                    <div class="support-form-sub">Have a question or issue? Reach out to the placement cell admin.</div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Your Student ID</label>
+                        <input type="text" class="form-input-custom u-bg-grey50-text-grey400" value="{{ student.student_id if student and student.student_id else 'N/A' }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-custom">Your Email</label>
+                        <input type="text" class="form-input-custom u-bg-grey50-text-grey400" value="{{ student.email if student and student.email else 'N/A' }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-custom" for="supportCategory">Category</label>
+                        <select class="form-input-custom" id="supportCategory" name="category">
+                            <option value="General">General</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Account">Account</option>
+                            <option value="Drive">Drive Related</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-custom" for="supportSubject">Subject *</label>
+                        <input type="text" class="form-input-custom" id="supportSubject" name="subject" placeholder="e.g. Application status query, Profile update issue…" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label-custom" for="supportMessage">Message *</label>
+                        <textarea class="form-input-custom" id="supportMessage" name="message" rows="5" placeholder="Describe your issue or question in detail…" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-c btn-c-primary">
+                        <i class="bi bi-send-fill"></i> Submit Request
+                    </button>
+                </form>
+
+                <div class="support-faq-card">
+                    <div class="card-header-bar">
+                        <div class="card-title"><i class="bi bi-question-circle-fill"></i> Frequently Asked Questions</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-q">How do I apply to a placement drive?</div>
+                        <div class="faq-a">Go to the <strong>Placement Drives</strong> tab, find a drive you're eligible for, and click <em>Apply Now</em>. Ensure your profile and resume are complete before applying.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-q">How do I update my profile?</div>
+                        <div class="faq-a">Open the <strong>Edit Profile</strong> tab from the sidebar or profile menu to update your details. Changes are saved instantly.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-q">Where can I see if I've been shortlisted or selected?</div>
+                        <div class="faq-a">Check the <strong>Application History</strong> tab. Your latest status is always displayed there. You'll also receive a notification when your status changes.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-q">Can I apply to multiple drives?</div>
+                        <div class="faq-a">Yes! You can apply to as many open drives as you're eligible for. There is no limit, but check eligibility criteria for each drive.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-q">Why can't I see certain drives?</div>
+                        <div class="faq-a">Only drives approved by the admin are visible. New drives will appear once reviewed and approved by the placement cell.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="support-tickets-card">
+                <div class="card-title" style="margin-bottom:0.8rem;"><i class="bi bi-ticket-perforated-fill"></i> My Support Tickets</div>
+                {% if student_tickets %}
+                    {% for ticket in student_tickets %}
+                    <div class="support-ticket-item">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.65rem;margin-bottom:0.25rem;">
+                            <div class="support-ticket-subject">{{ ticket.subject }}</div>
+                            <span class="badge-pill badge-{{ 'open' if ticket.status == 'Open' else 'interview' if ticket.status == 'In Progress' else 'selected' if ticket.status == 'Resolved' else 'closed' }}">{{ ticket.status }}</span>
+                        </div>
+                        <div class="support-ticket-meta">
+                            <span><i class="bi bi-hash"></i> {{ ticket.id }}</span>
+                            <span>·</span>
+                            <span><i class="bi bi-tag"></i> {{ ticket.category or 'General' }}</span>
+                            <span>·</span>
+                            <span><i class="bi bi-calendar3"></i> {{ ticket.created_at.strftime('%d %b %Y, %I:%M %p') if ticket.created_at else '—' }}</span>
+                        </div>
+                        <div class="support-ticket-msg">{{ ticket.message }}</div>
+                        {% if ticket.admin_reply %}
+                        <div class="support-admin-reply">
+                            <div class="lbl"><i class="bi bi-reply-fill me-1"></i> Admin Reply{% if ticket.replied_at %} · {{ ticket.replied_at.strftime('%d %b %Y, %I:%M %p') }}{% endif %}</div>
+                            <div class="txt">{{ ticket.admin_reply }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div style="text-align:center;padding:1.75rem 0.75rem;color:var(--grey-400);">
+                    <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:0.6rem;opacity:0.45;"></i>
+                    No support tickets yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+<!-- ================================================
+     BANNER RESUME MODAL
+================================================ -->
+{% if student and student.resume_url %}
+<div class="modal fade" id="resumePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#0d1b3e,#1e2d5a);color:#fff;border:none;">
+                <h5 class="modal-title" style="font-family:'Outfit',sans-serif;font-weight:700;"><i class="bi bi-file-earmark-pdf-fill me-2"></i>Resume Preview</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:0;background:#f8fafc;">
+                <iframe id="resumePreviewModalFrame"
+                        data-src="{{ url_for('static', filename=student.resume_url) }}#toolbar=0&navpanes=0&scrollbar=1&zoom=150"
+                        style="width:100%;height:78vh;border:none;background:#fff;"
+                        title="Resume Preview"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ================================================
+     APPLICATION DETAIL MODAL
+================================================ -->
+<div class="modal fade" id="appDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content u-card-overflow">
+            <div class="modal-header-dark">
+                <div>
+                    <div class="modal-title-custom" id="appModalTitle">Job Title</div>
+                    <small class="u-op70-white" id="appModalCompany">Company · Industry</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:1.5rem;">
+                <!-- Status Banner -->
+                <div class="app-modal-status applied" id="appModalStatusBanner">
+                    <div class="app-modal-status-icon" id="appModalStatusIcon">⏳</div>
+                    <div>
+                        <div class="app-modal-status-val" id="appModalStatusVal">Applied</div>
+                        <div style="font-size:0.82rem;color:var(--grey-600);" id="appModalDate">Applied on —</div>
+                    </div>
+                </div>
+
+                <!-- Status Timeline -->
+                <div class="app-timeline" id="appModalTimeline">
+                    <div class="tl-step" id="tl-applied"><div class="tl-dot"><i class="bi bi-send"></i></div><div class="tl-label">Applied</div></div>
+                    <div class="tl-step" id="tl-shortlisted"><div class="tl-dot"><i class="bi bi-star"></i></div><div class="tl-label">Shortlisted</div></div>
+                    <div class="tl-step" id="tl-interview"><div class="tl-dot"><i class="bi bi-camera-video"></i></div><div class="tl-label">Interview</div></div>
+                    <div class="tl-step" id="tl-selected"><div class="tl-dot"><i class="bi bi-trophy"></i></div><div class="tl-label">Placed</div></div>
+                </div>
+
+                <!-- Company Remark -->
+                <div id="appModalRemark" style="display:none;background:rgba(245,158,11,0.08);border:1.5px solid rgba(245,158,11,0.25);border-radius:12px;padding:1rem;margin-bottom:1.25rem;font-size:0.875rem;color:var(--grey-700);"></div>
+
+                <!-- Meta Strip -->
+                <div id="appModalMetaStrip" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.75rem;margin-bottom:1.25rem;"></div>
+
+                <!-- Skills -->
+                <div id="appModalSkillsWrap" class="u-adv-panel-hidden">
+                    <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey-400);margin-bottom:0.6rem;">Required Skills</div>
+                    <div id="appModalSkills"></div>
+                </div>
+
+                <!-- Description -->
+                <div id="appModalDescWrap" class="u-adv-panel-hidden">
+                    <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey-400);margin-bottom:0.6rem;">Job Description</div>
+                    <div id="appModalDesc" style="font-size:0.875rem;color:var(--grey-600);line-height:1.6;"></div>
+                </div>
+
+                <!-- Selection Process -->
+                <div id="appModalInterviewWrap" class="u-adv-panel-hidden">
+                    <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--grey-400);margin-bottom:0.6rem;">Selection Process</div>
+                    <div id="appModalInterview" style="font-size:0.875rem;color:var(--grey-600);font-weight:600;"></div>
+                </div>
+                <!-- Contact -->
+                <div id="appModalContactWrap" style="display:none;background:var(--grey-50);border-radius:12px;padding:1rem;gap:1rem;flex-direction:column;">
+                </div>
+
+                <!-- Closed Notice -->
+                <div id="appModalClosedNotice" style="display:none;background:rgba(0,0,0,0.04);border-radius:10px;padding:0.85rem 1rem;align-items:center;gap:0.5rem;font-size:0.875rem;color:var(--grey-400);">
+                    <i class="bi bi-lock-fill"></i> This drive is now closed.
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--grey-200);padding:1.25rem 1.5rem;">
+                <button class="btn-c btn-c-outline" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== EDIT PROFILE SECTION ===== -->
+<div class="content-section" id="edit-profile-section">
+    <div class="section-header">
+        <h1 class="section-title"><i class="bi bi-person-gear"></i> Edit Profile</h1>
+    </div>
+    <div class="modal-edit-shell card" style="overflow:visible;">
+        <div class="modal-header-dark" style="border-radius:var(--radius-card) var(--radius-card) 0 0;">
+            <div class="u-flex-center-gap1">
+                <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;">
+                    <i class="bi bi-pencil-square"></i>
+                </div>
+                <div>
+                    <div class="modal-title-custom">Update Your Profile</div>
+                    <small class="u-op70-white">{{ student.student_id if student and student.student_id else '' }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="card-body" style="padding:1.75rem;">
+            <form method="POST" action="{{ url_for('edit_student_profile') }}" enctype="multipart/form-data" id="editProfileForm">
+                <div class="modal-section-card">
+                <div class="modal-section-header">Personal Information</div>
+                <div class="row g-3 mb-2">
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">Login Email</label>
+                        <input type="email" class="modal-edit-input frozen" value="{{ student.email if student else '' }}" readonly disabled>
+                        <div style="font-size:0.72rem;color:var(--grey-400);margin-top:0.3rem;">Email is account-locked and cannot be edited.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">Full Name *</label>
+                        <input type="text" class="modal-edit-input" name="name" value="{{ student.name if student else '' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">Date of Birth</label>
+                        <input type="date" class="modal-edit-input" name="dob" value="{{ student.dob if student and student.dob else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">Mobile Number</label>
+                        <input type="text" class="modal-edit-input" name="contact" value="{{ student.contact if student and student.contact else '' }}" placeholder="+91 XXXXX XXXXX">
+                    </div>
+                </div>
+                </div>
+
+                <div class="modal-section-card">
+                <div class="modal-section-header">Academic Details</div>
+                <div class="row g-3 mb-2">
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">College / Institution</label>
+                        <input type="text" class="modal-edit-input" name="college" value="{{ student.college if student and student.college else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">Degree</label>
+                        <select class="modal-edit-input" name="degree">
+                            <option value="">Select degree</option>
+                            {% if student and student.degree and student.degree not in degree_options %}
+                            <option value="{{ student.degree }}" selected>{{ student.degree }}</option>
+                            {% endif %}
+                            {% for deg in degree_options %}
+                            <option value="{{ deg }}" {% if student and student.degree == deg %}selected{% endif %}>{{ deg }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">Branch / Specialization</label>
+                        <input type="text" class="modal-edit-input" name="branch" value="{{ student.branch if student and student.branch else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">CGPA</label>
+                        <input type="number" step="0.01" min="0" max="10" class="modal-edit-input" name="cgpa" value="{{ '%.2f'|format(student.cgpa) if student and student.cgpa is not none else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">10th Percentage</label>
+                        <input type="number" step="0.01" min="0" max="100" class="modal-edit-input" name="tenth_percent" value="{{ student.tenth_percent if student and student.tenth_percent is not none else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">12th Percentage</label>
+                        <input type="number" step="0.01" min="0" max="100" class="modal-edit-input" name="twelfth_percent" value="{{ student.twelfth_percent if student and student.twelfth_percent is not none else '' }}">
+                    </div>
+                </div>
+                </div>
+
+                <div class="modal-section-card">
+                <div class="modal-section-header">Links & Skills</div>
+                <div class="row g-3 mb-2">
+                    <div class="col-12">
+                        <label class="modal-edit-label">Skills (comma separated)</label>
+                        <input type="text" class="modal-edit-input" name="skills" value="{{ student.skills if student and student.skills else '' }}" placeholder="Python, Java, React, SQL…">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">LinkedIn URL</label>
+                        <input type="url" class="modal-edit-input" name="linkedin" value="{{ student.linkedin if student and student.linkedin else '' }}" placeholder="https://linkedin.com/in/…">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="modal-edit-label">GitHub URL</label>
+                        <input type="url" class="modal-edit-input" name="github" value="{{ student.github if student and student.github else '' }}" placeholder="https://github.com/…">
+                    </div>
+                    <div class="col-12">
+                        <label class="modal-edit-label">Bio</label>
+                        <textarea class="modal-edit-input" name="bio" rows="3" placeholder="A brief description about yourself…" style="resize:vertical;">{{ student.bio if student and student.bio else '' }}</textarea>
+                    </div>
+                </div>
+                </div>
+
+                <div class="modal-section-card u-mb-0">
+                <div class="modal-section-header">Resume</div>
+                <div class="mb-2">
+                    <label class="modal-edit-label">Upload Resume (PDF, max 2MB)</label>
+                    {% if student and student.resume_url %}
+                    <div style="font-size:0.82rem;color:var(--success);margin-bottom:0.5rem;"><i class="bi bi-check-circle-fill me-1"></i>Resume uploaded — upload a new one to replace</div>
+                    {% endif %}
+                    <input type="file" class="modal-edit-input" name="resume" accept=".pdf" style="padding:0.5rem;">
+                </div>
+                {% if student and student.resume_url %}
+                <div style="margin-top:0.8rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.55rem;">
+                        <div style="font-size:0.76rem;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--navy);">Resume Preview</div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                            <button type="button" class="btn-c btn-c-outline btn-c-sm" onclick="openResumePreviewModal()">
+                                <i class="bi bi-eye"></i> View Resume
+                            </button>
+                            <a href="{{ url_for('static', filename=student.resume_url) }}" download class="btn-c btn-c-primary btn-c-sm u-no-underline">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:0.6rem;margin-top:1rem;">
+                    <button type="button" class="btn-c btn-c-outline" onclick="navigateToSection('profile')">Cancel</button>
+                    <button type="submit" class="btn-c btn-c-primary"><i class="bi bi-check-lg"></i> Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+window.STUDENT_DASHBOARD_DATA = {
+    initialSection: {{ (initial_section or 'overview')|tojson }},
+    notificationsSeed: {{ (notifications_seed or [])|tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/student_dashboard.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page Not Found</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        background: radial-gradient(circle at top, #f7f8fb, #eef1f6 45%, #e7ecf4 100%);
+        color: #1e293b;
+      }
+      .wrap {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 32px 20px;
+      }
+      .card {
+        max-width: 520px;
+        width: 100%;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+        padding: 32px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #64748b;
+      }
+      h1 {
+        margin: 14px 0 12px;
+        font-size: 36px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      p {
+        margin: 0 0 18px;
+        line-height: 1.6;
+        color: #475569;
+      }
+      a {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        background: #1d4ed8;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      a:hover {
+        background: #1e40af;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="badge">404 • Not Found</div>
+        <h1>We couldn't find that page.</h1>
+        <p>
+          The link might be broken or the page may have moved. Check the URL, or head back
+          to the homepage to continue.
+        </p>
+        <a href="/">Back to Home</a>
+      </div>
+    </div>
+  </body>
+</html>

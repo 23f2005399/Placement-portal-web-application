@@ -1,0 +1,881 @@
+openapi: 3.0.3
+info:
+  title: Plaxeron Placement Portal API
+  description: API for managing students, companies, and placement drives in the Plaxeron placement portal system.
+  version: 1.0.0
+  contact:
+    name: Plaxeron Support
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: https://api.plaxeron.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/students:
+    get:
+      summary: Get all students
+      description: Retrieve a list of all students (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of students
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Student"
+        "403":
+          description: Unauthorized
+    post:
+      summary: Create a new student
+      description: Create a new student account (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentCreate"
+      responses:
+        "201":
+          description: Student created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "400":
+          description: Bad request - missing required fields
+        "409":
+          description: Email already exists
+        "403":
+          description: Unauthorized
+
+  /api/v1/students/{student_id}:
+    get:
+      summary: Get student by ID
+      description: Retrieve a specific student by their ID (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Student details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "404":
+          description: Student not found
+        "403":
+          description: Unauthorized
+    put:
+      summary: Update student (full)
+      description: Update all fields of a student (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentUpdate"
+      responses:
+        "200":
+          description: Student updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "404":
+          description: Student not found
+        "409":
+          description: Email already exists
+        "403":
+          description: Unauthorized
+    patch:
+      summary: Update student (partial)
+      description: Update specific fields of a student (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentUpdate"
+      responses:
+        "200":
+          description: Student updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "404":
+          description: Student not found
+        "409":
+          description: Email already exists
+        "403":
+          description: Unauthorized
+    delete:
+      summary: Delete student
+      description: Delete a student account (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Student deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted_id:
+                    type: integer
+        "404":
+          description: Student not found
+        "403":
+          description: Unauthorized
+
+  /api/v1/companies:
+    get:
+      summary: Get all companies
+      description: Retrieve a list of all companies (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Company"
+        "403":
+          description: Unauthorized
+    post:
+      summary: Create a new company
+      description: Create a new company account (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyCreate"
+      responses:
+        "201":
+          description: Company created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "400":
+          description: Bad request - missing required fields
+        "409":
+          description: Email already exists
+        "403":
+          description: Unauthorized
+
+  /api/v1/companies/{company_id}:
+    get:
+      summary: Get company by ID
+      description: Retrieve a specific company by their ID (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: company_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "404":
+          description: Company not found
+        "403":
+          description: Unauthorized
+    put:
+      summary: Update company (full)
+      description: Update all fields of a company (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: company_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyUpdate"
+      responses:
+        "200":
+          description: Company updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "404":
+          description: Company not found
+        "409":
+          description: Email already exists
+        "403":
+          description: Unauthorized
+    patch:
+      summary: Update company (partial)
+      description: Update specific fields of a company (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: company_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyUpdate"
+      responses:
+        "200":
+          description: Company updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "404":
+          description: Company not found
+        "409":
+          description: Email already exists
+        "403":
+          description: Unauthorized
+    delete:
+      summary: Delete company
+      description: Delete a company account (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: company_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted_id:
+                    type: integer
+        "404":
+          description: Company not found
+        "403":
+          description: Unauthorized
+
+  /api/v1/applications:
+    get:
+      summary: Get all applications
+      description: Retrieve a list of all job applications (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+        "403":
+          description: Unauthorized
+    post:
+      summary: Create a new application
+      description: Create a new job application (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationCreate"
+      responses:
+        "201":
+          description: Application created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          description: Bad request - missing required fields
+        "403":
+          description: Unauthorized
+
+  /api/v1/applications/{app_id}:
+    get:
+      summary: Get application by ID
+      description: Retrieve a specific application by its ID (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          description: Application not found
+        "403":
+          description: Unauthorized
+    put:
+      summary: Update application (full)
+      description: Update all fields of an application (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationUpdate"
+      responses:
+        "200":
+          description: Application updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          description: Application not found
+        "403":
+          description: Unauthorized
+    patch:
+      summary: Update application (partial)
+      description: Update specific fields of an application (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationUpdate"
+      responses:
+        "200":
+          description: Application updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          description: Application not found
+        "403":
+          description: Unauthorized
+    delete:
+      summary: Delete application
+      description: Delete a job application (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted_id:
+                    type: integer
+        "404":
+          description: Application not found
+        "403":
+          description: Unauthorized
+
+  /api/student/contact-exists:
+    get:
+      summary: Check if contact exists
+      description: Check if a contact number is already registered
+      parameters:
+        - name: contact
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contact availability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+
+  /api/student/email-exists:
+    get:
+      summary: Check if email exists
+      description: Check if an email address is already registered for students
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email availability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+
+  /api/company/email-exists:
+    get:
+      summary: Check if company email exists
+      description: Check if an email address is already registered for companies
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email availability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+
+  /api/company/mobile-exists:
+    get:
+      summary: Check if company mobile exists
+      description: Check if a mobile number is already registered for companies
+      parameters:
+        - name: mobile
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mobile availability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Student:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique student identifier
+        student_id:
+          type: string
+          description: Student ID number
+        name:
+          type: string
+          description: Full name of the student
+        email:
+          type: string
+          format: email
+          description: Email address
+        contact:
+          type: string
+          description: Contact phone number
+        college:
+          type: string
+          description: College name
+        degree:
+          type: string
+          description: Degree program
+        branch:
+          type: string
+          description: Branch/specialization
+        year_of_study:
+          type: string
+          description: Current year of study
+        graduation_year:
+          type: string
+          description: Expected graduation year
+        skills:
+          type: string
+          description: Technical skills
+        cgpa:
+          type: number
+          format: float
+          description: CGPA score
+        tenth_percent:
+          type: number
+          format: float
+          description: 10th grade percentage
+        twelfth_percent:
+          type: number
+          format: float
+          description: 12th grade percentage
+        linkedin:
+          type: string
+          format: uri
+          description: LinkedIn profile URL
+        github:
+          type: string
+          format: uri
+          description: GitHub profile URL
+        bio:
+          type: string
+          description: Student biography
+        resume_url:
+          type: string
+          format: uri
+          description: Resume file URL
+        is_active:
+          type: boolean
+          description: Account active status
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+
+    StudentCreate:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          description: Full name of the student
+        email:
+          type: string
+          format: email
+          description: Email address
+        password:
+          type: string
+          description: Account password
+        contact:
+          type: string
+          description: Contact phone number
+        college:
+          type: string
+          description: College name
+        degree:
+          type: string
+          description: Degree program
+        branch:
+          type: string
+          description: Branch/specialization
+        year_of_study:
+          type: string
+          description: Current year of study
+        graduation_year:
+          type: string
+          description: Expected graduation year
+        skills:
+          type: string
+          description: Technical skills
+        is_active:
+          type: boolean
+          default: true
+          description: Account active status
+
+    StudentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Full name of the student
+        email:
+          type: string
+          format: email
+          description: Email address
+        password:
+          type: string
+          description: Account password
+        contact:
+          type: string
+          description: Contact phone number
+        college:
+          type: string
+          description: College name
+        degree:
+          type: string
+          description: Degree program
+        branch:
+          type: string
+          description: Branch/specialization
+        year_of_study:
+          type: string
+          description: Current year of study
+        graduation_year:
+          type: string
+          description: Expected graduation year
+        skills:
+          type: string
+          description: Technical skills
+        is_active:
+          type: boolean
+          description: Account active status
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique company identifier
+        company_id:
+          type: string
+          description: Company ID number
+        company_name:
+          type: string
+          description: Company name
+        email:
+          type: string
+          format: email
+          description: Company email address
+        mobile:
+          type: string
+          description: Company mobile number
+        website:
+          type: string
+          format: uri
+          description: Company website URL
+        industry:
+          type: string
+          description: Industry sector
+        description:
+          type: string
+          description: Company description
+        address:
+          type: string
+          description: Company address
+        is_active:
+          type: boolean
+          description: Account active status
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+
+    CompanyCreate:
+      type: object
+      required:
+        - company_name
+        - email
+        - password
+      properties:
+        company_name:
+          type: string
+          description: Company name
+        email:
+          type: string
+          format: email
+          description: Company email address
+        password:
+          type: string
+          description: Account password
+        mobile:
+          type: string
+          description: Company mobile number
+        website:
+          type: string
+          format: uri
+          description: Company website URL
+        industry:
+          type: string
+          description: Industry sector
+        description:
+          type: string
+          description: Company description
+        address:
+          type: string
+          description: Company address
+        is_active:
+          type: boolean
+          default: true
+          description: Account active status
+
+    CompanyUpdate:
+      type: object
+      properties:
+        company_name:
+          type: string
+          description: Company name
+        email:
+          type: string
+          format: email
+          description: Company email address
+        password:
+          type: string
+          description: Account password
+        mobile:
+          type: string
+          description: Company mobile number
+        website:
+          type: string
+          format: uri
+          description: Company website URL
+        industry:
+          type: string
+          description: Industry sector
+        description:
+          type: string
+          description: Company description
+        address:
+          type: string
+          description: Company address
+        is_active:
+          type: boolean
+          description: Account active status
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique application identifier
+        student_id:
+          type: integer
+          description: Student ID who applied
+        drive_id:
+          type: integer
+          description: Placement drive ID
+        status:
+          type: string
+          enum: [pending, shortlisted, rejected, selected]
+          description: Application status
+        applied_at:
+          type: string
+          format: date-time
+          description: Application timestamp
+        notes:
+          type: string
+          description: Additional notes
+
+    ApplicationCreate:
+      type: object
+      required:
+        - student_id
+        - drive_id
+      properties:
+        student_id:
+          type: integer
+          description: Student ID who applied
+        drive_id:
+          type: integer
+          description: Placement drive ID
+        status:
+          type: string
+          enum: [pending, shortlisted, rejected, selected]
+          default: pending
+          description: Application status
+        notes:
+          type: string
+          description: Additional notes
+
+    ApplicationUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, shortlisted, rejected, selected]
+          description: Application status
+        notes:
+          type: string
+          description: Additional notes

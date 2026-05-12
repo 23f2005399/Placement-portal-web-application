@@ -1,0 +1,422 @@
+{% extends 'auth/base_register.html' %}
+
+{% block title %}Student Registration | Plaxeron{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+{% endblock %}
+
+{% block register_content %}
+<div class="split-container">
+
+    <!-- ══ LEFT PANEL ══ -->
+    <div class="left-panel">
+        <div class="left-topbar">
+            <a href="{{ url_for('home') }}" class="brand text-decoration-none">
+                <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+            </a>
+            <a href="{{ url_for('home') }}" class="left-home-btn">
+                <i class="bi bi-house-door"></i> Home
+            </a>
+        </div>
+        <div class="content-wrapper">
+            <h1 class="hero-title">Create Your Account</h1>
+            <p class="hero-subtitle">Start your journey to landing your dream job</p>
+            <div class="benefits-stack">
+                <div class="benefit-card active" data-step="1">
+                    <div class="benefit-icon"><i class="bi bi-building"></i></div>
+                    <h3 class="benefit-title">Exclusive Access</h3>
+                    <p class="benefit-desc">Get direct access to top company placement drives from leading tech giants and innovative startups.</p>
+                </div>
+                <div class="benefit-card" data-step="2">
+                    <div class="benefit-icon"><i class="bi bi-bell-fill"></i></div>
+                    <h3 class="benefit-title">Real-time Updates</h3>
+                    <p class="benefit-desc">Stay informed with instant notifications on application status, deadlines, and new opportunities.</p>
+                </div>
+                <div class="benefit-card" data-step="3">
+                    <div class="benefit-icon"><i class="bi bi-person-badge-fill"></i></div>
+                    <h3 class="benefit-title">Profile Management</h3>
+                    <p class="benefit-desc">Showcase your skills, track your resume, and build a standout profile that recruiters love.</p>
+                </div>
+                <div class="benefit-card" data-step="4">
+                    <div class="benefit-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                    <h3 class="benefit-title">Analytics Dashboard</h3>
+                    <p class="benefit-desc">Monitor your placement journey with detailed insights and track your progress towards success.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ RIGHT PANEL ══ -->
+    <div class="right-panel">
+
+        <div class="form-container">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if message != 'Logged out successfully.' %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-3" role="alert">
+                            <i class="bi bi-{{ 'exclamation-triangle-fill' if category == 'error' else 'check-circle-fill' }} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Stepper -->
+            <div class="stepper">
+                <div class="step-item active">
+                    <div class="step-circle active"><i class="bi bi-person-fill"></i></div>
+                    <div class="step-label active">Basic</div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-circle"><i class="bi bi-book-fill"></i></div>
+                    <div class="step-label">Education</div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-circle"><i class="bi bi-file-earmark-person-fill"></i></div>
+                    <div class="step-label">Profile</div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-circle"><i class="bi bi-check-circle-fill"></i></div>
+                    <div class="step-label">Review</div>
+                </div>
+            </div>
+
+            <form id="registrationForm" method="POST" enctype="multipart/form-data">
+
+                <!-- ══════ STEP 1: Basic Information ══════ -->
+                <div class="form-step active" data-step="1">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-person-fill"></i></div>
+                            <div class="header-title"><h5>Basic Information</h5><p>Let's start with your personal details</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <!-- Full Name -->
+                            <div class="mb-3">
+                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" id="studentName" name="name" placeholder="John Doe" required>
+                                </div>
+                            </div>
+
+                            <!-- Date of Birth -->
+                            <div class="mb-3">
+                                <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-calendar3"></i></span>
+                                    <input type="date" class="form-control" id="studentDOB" name="dob" required>
+                                </div>
+                            </div>
+
+                            <!-- Email — with live validation -->
+                            <div class="mb-3">
+                                <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control" id="studentEmail" name="email" placeholder="john@example.com" required autocomplete="email">
+                                </div>
+                                <span class="field-msg" id="emailMsg"></span>
+                            </div>
+
+                            <!-- Mobile — 10-digit Indian mobile with live validation -->
+                            <div class="mb-3">
+                                <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-telephone"></i></span>
+                                    <input type="tel" class="form-control" id="studentContact" name="contact" placeholder="9876543210" maxlength="10" inputmode="numeric" required>
+                                </div>
+                                <span class="field-msg" id="mobileMsg"></span>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label class="form-label">Password <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control pwd-field" id="studentPassword" name="password" placeholder="Create a strong password" required autocomplete="new-password">
+                                    <span class="pwd-toggle" onclick="togglePwd('studentPassword','iconPwd1')"><i class="bi bi-eye" id="iconPwd1"></i></span>
+                                </div>
+                                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                                <small class="strength-text" id="strengthText" style="color:var(--grey-400)">Choose a strong password</small>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="mb-3">
+                                <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-lock-fill"></i></span>
+                                    <input type="password" class="form-control pwd-field" id="confirmPassword" name="confirm_password" placeholder="Re-enter your password" required autocomplete="new-password">
+                                    <span class="pwd-toggle" onclick="togglePwd('confirmPassword','iconPwd2')"><i class="bi bi-eye" id="iconPwd2"></i></span>
+                                </div>
+                                <span class="field-msg" id="pwdMatchMsg"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-primary-custom" id="nextBtn1" onclick="nextStep(2)" disabled>
+                                    Next Step <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════ STEP 2: Education ══════ -->
+                <div class="form-step" data-step="2">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-book-fill"></i></div>
+                            <div class="header-title"><h5>Education Details</h5><p>Tell us about your academic background</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <div class="mb-3">
+                                <label class="form-label">College / University <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-building"></i></span>
+                                    <input type="text" class="form-control" id="studentCollege" name="college" placeholder="Your institution name" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Degree Program <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-mortarboard"></i></span>
+                                    <select class="form-select" id="studentDegree" name="degree" required>
+                                        <option value="">Select your degree</option>
+                                        {% for deg in degree_options %}
+                                        <option value="{{ deg }}">{{ deg }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Branch / Specialization <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-diagram-3"></i></span>
+                                        <input type="text" class="form-control" id="studentBranch" name="branch" placeholder="e.g., Computer Science" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Year of Study <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-calendar2-week"></i></span>
+                                        <select class="form-select" id="studentYearOfStudy" name="year_of_study" required>
+                                            <option value="">Select year</option>
+                                            <option value="1st Year">1st Year</option>
+                                            <option value="2nd Year">2nd Year</option>
+                                            <option value="3rd Year">3rd Year</option>
+                                            <option value="4th Year">4th Year</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">CGPA / Percentage <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-award"></i></span>
+                                        <input type="text" class="form-control" id="studentCGPA" name="cgpa" placeholder="e.g., 8.5 or 85%" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Expected Graduation</label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-calendar-check"></i></span>
+                                        <input type="month" class="form-control" id="studentGradYear" name="graduation_year">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">10th Percentage <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-journal-text"></i></span>
+                                        <input type="text" class="form-control" id="tenthPercent" name="tenth_percent" placeholder="e.g., 88%" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">12th Percentage <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-journal-text"></i></span>
+                                        <input type="text" class="form-control" id="twelfthPercent" name="twelfth_percent" placeholder="e.g., 82%" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-custom" onclick="prevStep(1)"><i class="bi bi-arrow-left me-2"></i> Previous</button>
+                                <button type="button" class="btn btn-primary-custom" id="nextBtn2" onclick="nextStep(3)" disabled>Next Step <i class="bi bi-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════ STEP 3: Profile & Skills ══════ -->
+                <div class="form-step" data-step="3">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-file-earmark-person-fill"></i></div>
+                            <div class="header-title"><h5>Profile & Skills</h5><p>Complete your profile to stand out</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <div class="mb-3">
+                                <label class="form-label">Upload Resume <span class="text-danger">*</span></label>
+                                <label for="resumeInput" class="file-upload-area" id="fileUploadLabel">
+                                    <div class="upload-icon" id="fileUploadIcon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                                    <strong id="fileUploadText">Click to upload PDF</strong>
+                                    <p style="color:var(--grey-400);font-size:0.83rem;margin-top:0.25rem;">PDF format, max 2MB</p>
+                                </label>
+                                <input type="file" id="resumeInput" name="resume" accept=".pdf" style="display:none;" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Skills <span style="color:var(--grey-400);font-weight:normal;">(Press Enter to add)</span></label>
+                                <input type="text" class="form-control" id="skillsInput" placeholder="e.g., Python, React, SQL">
+                                <input type="hidden" id="skillsHidden" name="skills">
+                                <div class="skills-container mt-2" id="skillsTags">
+                                    <small style="color:var(--grey-400);">Type a skill and press Enter to add it</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">LinkedIn Profile</label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-linkedin"></i></span>
+                                        <input type="url" class="form-control" id="studentLinkedin" name="linkedin" placeholder="linkedin.com/in/yourname">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">GitHub Profile</label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-github"></i></span>
+                                        <input type="url" class="form-control" id="studentGithub" name="github" placeholder="github.com/yourname">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Bio <span style="color:var(--grey-400);font-weight:normal;">(Optional)</span></label>
+                                <textarea class="form-control" id="studentBio" name="bio" rows="3" placeholder="Tell us about yourself, your interests, and career goals..."></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-custom" onclick="prevStep(2)"><i class="bi bi-arrow-left me-2"></i> Previous</button>
+                                <button type="button" class="btn btn-primary-custom" id="nextBtn3" onclick="nextStep(4)" disabled>Next Step <i class="bi bi-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════ STEP 4: Review ══════ -->
+                <div class="form-step" data-step="4">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-check-circle-fill"></i></div>
+                            <div class="header-title"><h5>Review Your Information</h5><p>Please verify all details before submitting</p></div>
+                        </div>
+                        <div class="form-card-body">
+                            <!-- ⭐ STUDENT ID HIGHLIGHT BOX ⭐ -->
+                                <div class="student-id-box">
+                                    <div class="student-id-label"><i class="bi bi-fingerprint me-1"></i> Your Unique Student ID</div>
+                                    <div class="student-id-value" id="displayStudentId">PLAX--S----</div>
+                                    <div class="student-id-note">
+                                        <strong>⚠ Please note this ID carefully.</strong> You can use it along with your password to login. Save it before submitting.
+                                    </div>
+                                    <button type="button" class="btn-copy" id="copyStudentIdBtn" onclick="copyStudentId()">
+                                        <i class="bi bi-clipboard"></i> Copy ID
+                                    </button>
+                                </div>
+                            <!-- Basic Review -->
+                            <div class="review-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0" style="color:var(--navy);font-weight:700;"><i class="bi bi-person-circle me-2" style="color:var(--accent);"></i>Basic Information</h6>
+                                    <button type="button" class="btn btn-sm p-0" style="color:var(--accent);" onclick="nextStep(1)"><i class="bi bi-pencil-square"></i> Edit</button>
+                                </div>
+                                <div class="review-content">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Full Name</small><p id="reviewName" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Date of Birth</small><p id="reviewDOB" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Email</small><p id="reviewEmail" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-0"><small style="color:var(--grey-400);font-weight:600;">Mobile</small><p id="reviewContact" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Education Review -->
+                            <div class="review-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0" style="color:var(--navy);font-weight:700;"><i class="bi bi-mortarboard me-2" style="color:var(--accent);"></i>Education Details</h6>
+                                    <button type="button" class="btn btn-sm p-0" style="color:var(--accent);" onclick="nextStep(2)"><i class="bi bi-pencil-square"></i> Edit</button>
+                                </div>
+                                <div class="review-content">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">College</small><p id="reviewCollege" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Degree</small><p id="reviewDegree" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Branch</small><p id="reviewBranch" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Year of Study</small><p id="reviewYear" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-4 mb-0"><small style="color:var(--grey-400);font-weight:600;">CGPA</small><p id="reviewCGPA" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-4 mb-0"><small style="color:var(--grey-400);font-weight:600;">10th %</small><p id="reviewTenth" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-4 mb-0"><small style="color:var(--grey-400);font-weight:600;">12th %</small><p id="reviewTwelfth" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Profile Review -->
+                            <div class="review-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0" style="color:var(--navy);font-weight:700;"><i class="bi bi-file-earmark-person me-2" style="color:var(--accent);"></i>Profile & Skills</h6>
+                                    <button type="button" class="btn btn-sm p-0" style="color:var(--accent);" onclick="nextStep(3)"><i class="bi bi-pencil-square"></i> Edit</button>
+                                </div>
+                                <div class="review-content">
+                                    <div class="mb-2"><small style="color:var(--grey-400);font-weight:600;">Resume</small><p class="mb-0" style="color:var(--grey-700);"><i class="bi bi-file-earmark-pdf text-danger"></i> <span id="resumeFileName">-</span></p></div>
+                                    <div class="mb-2"><small style="color:var(--grey-400);font-weight:600;">Skills</small><div id="reviewSkills" class="mt-1">-</div></div>
+                                    <div class="mb-2"><small style="color:var(--grey-400);font-weight:600;">LinkedIn</small><p id="reviewLinkedin" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                    <div class="mb-2"><small style="color:var(--grey-400);font-weight:600;">GitHub</small><p id="reviewGithub" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                    <div class="mb-0"><small style="color:var(--grey-400);font-weight:600;">Bio</small><p id="reviewBio" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                </div>
+                            </div>
+                            <!-- Login info reminder -->
+                            <div class="alert" style="background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);color:var(--navy);font-size:0.85rem;margin-bottom:1rem;">
+                                <i class="bi bi-info-circle-fill me-2" style="color:var(--accent);"></i>
+                                <strong>Login Options:</strong> You can log in using your <strong>Email</strong> <em>or</em> your <strong>Student ID</strong> along with your password.
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-custom" onclick="prevStep(3)"><i class="bi bi-arrow-left me-2"></i> Previous</button>
+                                <button type="submit" class="btn btn-primary-custom" id="submitBtn">
+                                    <span id="submitText"><i class="bi bi-check-circle me-2"></i> Complete Registration</span>
+                                    <span id="submitSpinner" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span> Creating account...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+            <div class="auth-box">
+                <span>Already registered?</span>
+                <a href="{{ url_for('student_login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/student_register.js') }}"></script>
+{% endblock %}

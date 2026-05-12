@@ -1,0 +1,55 @@
+{% extends 'auth/base_auth.html' %}
+
+{% block title %}Admin Login | Plaxeron{% endblock %}
+{% block body_class %}auth-admin{% endblock %}
+
+{% block card_header %}
+<!-- Card top section: admin identity and page title -->
+<div class="login-icon"><i class="bi bi-shield-lock-fill"></i></div>
+<h4>Admin Login</h4>
+<p>Secure access for Institute Placement Cell</p>
+{% endblock %}
+
+{% block card_body %}
+<!-- Admin security notice block -->
+<div class="admin-notice">
+    <i class="bi bi-shield-exclamation"></i>
+    <span>Admin accounts are <strong>provisioned by the institute only</strong>. Unauthorized access is prohibited.</span>
+</div>
+
+<!-- Login form block: admin email + password -->
+<form method="post" action="{{ url_for('admin_login') }}" id="loginForm">
+    <div class="input-group-custom">
+        <label class="form-label">Admin Email</label>
+        <div style="position:relative;">
+            <span class="input-icon"><i class="bi bi-envelope"></i></span>
+            <input type="email" name="email" class="form-control" placeholder="admin@plaxeron.edu" required autocomplete="email">
+        </div>
+    </div>
+
+    <div class="input-group-custom">
+        <label class="form-label">Password</label>
+        <div style="position:relative;">
+            <span class="input-icon"><i class="bi bi-lock"></i></span>
+            <input type="password" name="password" id="pwd" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+            <span class="password-toggle"><i class="bi bi-eye" id="icon"></i></span>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-login" id="btn">
+        <span id="txt"><i class="bi bi-shield-lock"></i> Login as Admin</span>
+        <span id="spin" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span> Verifying...</span>
+    </button>
+</form>
+
+<!-- Quick navigation block to other login portals -->
+<div class="portal-links">
+    <a href="{{ url_for('student_login') }}" class="portal-link"><i class="bi bi-person"></i> Student Login</a>
+    <span class="portal-sep">|</span>
+    <a href="{{ url_for('company_login') }}" class="portal-link"><i class="bi bi-building"></i> Company Login</a>
+</div>
+{% endblock %}
+
+{% block card_footer %}
+&copy; 2026 <strong>Plaxeron</strong> Placement Portal. All rights reserved.
+{% endblock %}

@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Company Dashboard | Plaxeron</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="{{ url_for('static', filename='css/company_dashboard.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<!-- TOP NAVBAR -->
+<nav class="top-navbar">
+    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+    {% set brand_href = url_for('home') %}
+    <a href="{{ brand_href }}" class="navbar-brand">
+        <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+    </a>
+    <div class="navbar-center">
+        <div class="global-search-wrap" id="globalSearchWrap">
+            <div class="global-search-inner">
+                <i class="bi bi-search"></i>
+                <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Search drives by name or ID…" autocomplete="off">
+            </div>
+            <div class="search-results-dropdown" id="searchResultsDropdown"></div>
+        </div>
+    </div>
+    <div class="navbar-right">
+        <div class="notif-bell-wrap">
+            <div class="notif-bell-btn" onclick="toggleNotifPanel()" title="Notifications">
+                <i class="bi bi-bell"></i>
+                <span class="notif-bell-badge" id="notifBadge">0</span>
+                <span class="broadcast-bell-dot" id="broadcastBellDot"></span>
+            </div>
+            <div class="broadcast-float-pill" id="broadcastFloatPill" onclick="toggleNotifPanel()">new broadcast from admin</div>
+        </div>
+        <div class="user-pill" id="userPill" onclick="toggleProfileDropdown()">
+            <div class="user-avatar-sm">{{ company.company_name[0].upper() if company else 'C' }}</div>
+            <span class="user-pill-name d-none d-md-inline">{{ company.company_name.split()[0] if company else 'Company' }}</span>
+            <i class="bi bi-chevron-down user-pill-chevron"></i>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn-nav-logout">
+            <i class="bi bi-box-arrow-right"></i><span class="d-none d-md-inline">Logout</span>
+        </a>
+    </div>
+</nav>
+
+<!-- Profile Dropdown -->
+<div class="profile-dropdown" id="profileDropdown">
+    <div class="pd-header">
+        <div class="pd-avatar-lg">{{ company.company_name[0].upper() if company else 'C' }}</div>
+        <div>
+            <div class="pd-name">{{ company.company_name if company else 'Company' }}</div>
+            <div class="pd-sub">{{ company.email if company else 'company@email.com' }}</div>
+        </div>
+    </div>
+    <div class="pd-body">
+        <div class="pd-row"><i class="bi bi-fingerprint"></i><div><div class="pd-row-label">Company ID</div><div class="pd-row-val" style="font-family:'Outfit',monospace; font-weight:700; color:var(--accent);">{{ company.company_id if company and company.company_id else 'PLX-C0001' }}</div></div></div>
+        <div class="pd-row"><i class="bi bi-person-badge"></i><div><div class="pd-row-label">HR Contact</div><div class="pd-row-val">{{ company.hr_contact or "Not specified" if company else "—" }}</div></div></div>
+        <div class="pd-row"><i class="bi bi-briefcase"></i><div><div class="pd-row-label">Industry</div><div class="pd-row-val">{{ company.industry or "Not specified" if company else "—" }}</div></div></div>
+        <div class="pd-row"><i class="bi bi-globe"></i><div><div class="pd-row-label">Website</div>{% if company and company.website %}<a href="{{ company.website }}" target="_blank" style="font-size:0.85rem; color:var(--accent); font-weight:600; text-decoration:none;">{{ company.website|truncate(30,true) }}</a>{% else %}<div class="pd-row-val">Not specified</div>{% endif %}</div></div>
+        <div class="pd-row"><i class="bi bi-shield-check"></i><div><div class="pd-row-label">Status</div><div class="pd-row-val" style="color: {{ '#059669' if company and company.approval_status == 'Approved' else '#d97706' }}; font-weight: 700;">{{ company.approval_status if company else "—" }}</div></div></div>
+    </div>
+    <div class="pd-footer">
+        <button onclick="openEditProfileModal()" class="pd-btn pd-btn-edit"><i class="bi bi-pencil-square"></i> Edit Profile</button>
+        <a href="{{ url_for('logout') }}" class="pd-btn pd-btn-logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Navigation</div>
+    <ul class="sidebar-nav">
+        <li><a href="#" class="sidebar-nav-link active" data-section="overview"><i class="bi bi-grid-1x2"></i><span>Overview</span></a></li>
+        <li><a href="#" class="sidebar-nav-link" data-section="active-drives"><i class="bi bi-calendar-check"></i><span>Active Drives</span></a></li>
+        <li><a href="#" class="sidebar-nav-link" data-section="pipeline"><i class="bi bi-funnel-fill"></i><span>Applicant Pipeline</span></a></li>
+        <li><a href="#" class="sidebar-nav-link" data-section="closed-drives"><i class="bi bi-archive"></i><span>Closed Drives</span></a></li>
+        <li><a href="#" class="sidebar-nav-link" data-section="analytics"><i class="bi bi-bar-chart-fill"></i><span>Analytics</span></a></li>
+        <li><a href="#" class="sidebar-nav-link" data-section="broadcasts"><i class="bi bi-inbox-fill"></i><span>Notifications & Broadcasts</span><span class="sidebar-broadcast-dot" id="broadcastSidebarDot"></span></a></li>
+        <li><a href="#" class="sidebar-nav-link" data-section="support"><i class="bi bi-ticket-perforated-fill"></i><span>Support</span></a></li>
+    </ul>
+    <hr class="sidebar-divider">
+    <div class="sidebar-section-label">Account</div>
+    <ul class="sidebar-nav">
+        <li><a href="#" class="sidebar-nav-link" data-section="profile"><i class="bi bi-building-fill"></i><span>Company Profile</span></a></li>
+        <li><a href="#" class="sidebar-nav-link" onclick="openEditProfileModal(); return false;"><i class="bi bi-building-gear"></i><span>Edit Profile</span></a></li>
+        {% if company.approval_status == 'Approved' %}
+        <li><a href="#" class="sidebar-nav-link" onclick="openCreateDriveModal(); return false;"><i class="bi bi-plus-circle"></i><span>Create Drive</span></a></li>
+        {% endif %}
+        <li><a href="{{ url_for('logout') }}" class="sidebar-nav-link" style="color: #dc2626;"><i class="bi bi-box-arrow-right u-text-danger"></i><span>Logout</span></a></li>
+    </ul>
+</aside>
+
+<!-- NOTIFICATION PANEL -->
+<aside class="notif-panel" id="notifPanel">
+    <div class="notif-panel-header">
+        <div class="notif-panel-title"><i class="bi bi-bell-fill u-text-accent"></i>Notifications & Broadcasts <span class="inline-broadcast-dot" id="broadcastPanelDot" style="margin-left:0.1rem;"></span><span id="notifCountLabel" style="font-size:0.78rem; background:var(--accent); color:#fff; padding:0.1rem 0.5rem; border-radius:12px; margin-left:0.3rem; display:none;"></span></div>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <button onclick="markAllRead()" style="font-size:0.78rem; color:var(--accent); background:none; border:none; cursor:pointer; font-weight:600;">Mark all read</button>
+            <button onclick="closeNotifPanel()" style="background:none; border:none; color:var(--grey-400); cursor:pointer; font-size:1.3rem; line-height:1;">×</button>
+        </div>
+    </div>
+    <div class="notif-panel-body" id="notifPanelBody"><div class="notif-empty"><i class="bi bi-bell-slash"></i>No notifications yet</div></div>
+    <div class="notif-panel-footer"><span style="font-size:0.78rem; color:var(--grey-400);">Auto-refreshes every 30 seconds</span></div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert">
+            {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- ===== OVERVIEW SECTION ===== -->
+    <div class="content-section active" id="overview-section">
+
+        <!-- Company Banner -->
+        <div class="company-banner">
+            <div class="company-banner-bg"></div>
+            <div class="company-banner-dots"></div>
+            <div class="banner-top">
+                <div class="company-avatar">{{ company.company_name[0].upper() if company else 'C' }}</div>
+                <div class="banner-company-info">
+                    <div style="margin-bottom: 0.5rem;">
+                        <span class="banner-pill company-id-pill">ID: {{ company.company_id if company and company.company_id else 'PLAX26C001' }}</span>
+                    </div>
+                    <h2>{{ company.company_name if company else 'Company Name' }}</h2>
+                    <div class="banner-company-sub">
+                        {% if company and company.industry %}<span><i class="bi bi-briefcase"></i>{{ company.industry }}</span>{% endif %}
+                        {% if company and company.location %}<span class="sep">·</span><span><i class="bi bi-geo-alt"></i>{{ company.location }}</span>{% endif %}
+                    </div>
+                    <div class="banner-pills">
+                        {% if company.hr_contact %}<span class="banner-pill clickable" onclick="openHRDetailModal()"><i class="bi bi-person-badge"></i>{{ company.hr_contact }}{% if company.hr_designation %}<span style="opacity:0.7;">· {{ company.hr_designation }}</span>{% endif %}<i class="bi bi-chevron-right" style="font-size:0.65rem; opacity:0.6;"></i></span>{% endif %}
+                        {% if company.website %}<a href="{{ company.website }}" target="_blank" class="banner-pill clickable" style="color:#fff; text-decoration:none;"><i class="bi bi-globe"></i>Website</a>{% endif %}
+                        <span class="banner-pill {{ 'approved-pill' if company and company.approval_status == 'Approved' else 'pending-pill' }}">
+                            <i class="bi bi-{{ 'check-circle-fill' if company and company.approval_status == 'Approved' else 'clock-fill' }}"></i>{{ company.approval_status if company else 'Pending' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {% set ns = namespace(total_shortlisted=0, total_selected=0, total_interview=0, total_rejected=0) %}
+            {% for drive in all_drives %}
+                {% set ns.total_shortlisted = ns.total_shortlisted + (drive.applications|selectattr('status','equalto','Shortlisted')|list|length) %}
+                {% set ns.total_selected    = ns.total_selected    + (drive.applications|selectattr('status','equalto','Placed')|list|length) %}
+                {% set ns.total_interview   = ns.total_interview   + (drive.applications|selectattr('status','equalto','Interview')|list|length) %}
+                {% set ns.total_rejected    = ns.total_rejected    + (drive.applications|selectattr('status','equalto','Rejected')|list|length) %}
+            {% endfor %}
+
+            <div class="banner-stats-strip">
+                <div class="banner-stat"><div class="banner-stat-val bsv-drives">{{ total_drives }}</div><div class="banner-stat-lbl">Total Drives</div></div>
+                <div class="banner-stat"><div class="banner-stat-val bsv-placed">{{ approved_drives }}</div><div class="banner-stat-lbl">Active Drives</div></div>
+                <div class="banner-stat"><div class="banner-stat-val bsv-apps">{{ total_applications }}</div><div class="banner-stat-lbl">Applications</div></div>
+                <div class="banner-stat"><div class="banner-stat-val bsv-shortlisted">{{ ns.total_shortlisted }}</div><div class="banner-stat-lbl">Shortlisted</div></div>
+                <div class="banner-stat"><div class="banner-stat-val bsv-interview">{{ ns.total_interview }}</div><div class="banner-stat-lbl">Interview</div></div>
+                <div class="banner-stat"><div class="banner-stat-val bsv-rejected">{{ ns.total_rejected }}</div><div class="banner-stat-lbl">Rejected</div></div>
+            </div>
+
+            <div class="banner-actions-bar">
+                <button onclick="openEditProfileModal()" class="btn-banner btn-banner-ghost"><i class="bi bi-pencil-square"></i> Edit Profile</button>
+                {% if company.approval_status == 'Approved' %}
+                <button onclick="openCreateDriveModal()" class="btn-banner btn-banner-primary"><i class="bi bi-plus-circle"></i> Create Drive</button>
+                {% endif %}
+                <button class="btn-banner btn-banner-ghost" onclick="navigateToSection('analytics')"><i class="bi bi-bar-chart"></i> Analytics</button>
+                <button class="btn-banner btn-banner-ghost" onclick="navigateToSection('pipeline'); setTimeout(function(){ document.getElementById('pipelineStatusFilter').value='shortlisted'; filterPipeline(); }, 100);"><i class="bi bi-star-fill" style="color:#fcd34d;"></i> Shortlisted</button>
+            </div>
+        </div>
+
+        {% if company.approval_status != 'Approved' %}
+        <div class="pending-alert"><i class="bi bi-hourglass-split"></i><div><strong style="color:#92400e;">Account Under Review</strong><p style="color:#78350f; margin:0; font-size:0.88rem;">Your company registration is being reviewed. You can create placement drives once approved. This typically takes 24–48 hours.</p></div></div>
+        {% endif %}
+
+        <!-- Overview Row: Activity Feed + Upcoming Events -->
+        <div class="overview-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.5rem;">
+
+            <!-- Recent Activity Feed -->
+            <div class="card u-mb-0">
+                <div class="card-header-bar">
+                    <div class="card-title"><i class="bi bi-activity"></i> Recent Activity</div>
+                    <span class="u-fs075-grey400">Latest 20 changes</span>
+                </div>
+                <div class="activity-feed" id="overviewActivityFeed" style="height:360px; overflow-y:auto;">
+                    {% for item in recent_activities %}
+                    {% if item.kind == 'application-status' %}
+                    {% set status_lower = item.status|lower %}
+                    <div class="activity-item"
+                         onclick="openReviewFromOverview({{ item.application_id }}, {{ item.drive_id }})"
+                         onmouseenter="this.style.background='rgba(37,99,235,0.04)'"
+                         onmouseleave="this.style.background='transparent'">
+                        <div class="activity-dot {{ status_lower }}">
+                            <i class="bi bi-{% if item.status == 'Placed' %}trophy-fill{% elif item.status == 'Shortlisted' %}bookmark-star-fill{% elif item.status == 'Interview' %}camera-video-fill{% elif item.status == 'Rejected' %}x-circle-fill{% else %}hourglass-split{% endif %}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">
+                                <strong>{{ item.student_name }}</strong>
+                                <span class="activity-status-text {{ status_lower }}">{{ item.status }}</span>
+                                for <span style="color:var(--accent); font-weight:600;">{{ item.drive_title|truncate(28, true) }}</span>
+                            </div>
+                            <div class="activity-time">
+                                <span>
+                                    <i class="bi bi-calendar3 me-1"></i>{{ item.display_date }}
+                                    <span style="margin-left:0.4rem; background:var(--grey-100); padding:0.1rem 0.4rem; border-radius:5px; font-size:0.68rem; font-weight:600; color:var(--grey-500);">
+                                        <i class="bi bi-clock me-1"></i>{{ item.display_time }} IST
+                                    </span>
+                                </span>
+                                <span style="color:var(--accent); font-size:0.7rem; font-weight:600;">Review →</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif item.kind == 'drive-created' %}
+                    <div class="activity-item" onclick="openDriveDetailModal({{ item.drive_id }})">
+                        <div class="activity-dot applied"><i class="bi bi-plus-circle-fill"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text"><span class="activity-status-text created">Created</span> {{ item.summary }}</div>
+                            <div class="activity-time"><i class="bi bi-calendar3 me-1"></i>{{ item.display_date }}, {{ item.display_time }} IST</div>
+                        </div>
+                    </div>
+                    {% elif item.kind == 'drive-edited' %}
+                    <div class="activity-item" onclick="openDriveDetailModal({{ item.drive_id }})">
+                        <div class="activity-dot shortlisted"><i class="bi bi-pencil-square"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text"><span class="activity-status-text edited">Edited</span> {{ item.summary }}</div>
+                            <div class="activity-time"><i class="bi bi-calendar3 me-1"></i>{{ item.display_date }}, {{ item.display_time }} IST</div>
+                        </div>
+                    </div>
+                    {% elif item.kind == 'drive-closed' %}
+                    <div class="activity-item" onclick="openDriveDetailModal({{ item.drive_id }})">
+                        <div class="activity-dot rejected"><i class="bi bi-x-octagon-fill"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text"><span class="activity-status-text closed">Closed</span> {{ item.summary }}</div>
+                            <div class="activity-time"><i class="bi bi-calendar3 me-1"></i>{{ item.display_date }}, {{ item.display_time }} IST</div>
+                        </div>
+                    </div>
+                    {% elif item.kind == 'drive-reopened' %}
+                    <div class="activity-item" onclick="openDriveDetailModal({{ item.drive_id }})">
+                        <div class="activity-dot selected"><i class="bi bi-arrow-counterclockwise"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text"><span class="activity-status-text selected">Reopened</span> {{ item.summary }}</div>
+                            <div class="activity-time"><i class="bi bi-calendar3 me-1"></i>{{ item.display_date }}, {{ item.display_time }} IST</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% if not recent_activities %}
+                    <div class="u-empty-block">
+                        <i class="bi bi-inbox u-icon-lg-block"></i>
+                        <div class="u-fs088">No activity yet</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Upcoming Events Widget -->
+            <div class="deadline-widget u-mb-0">
+                <div class="deadline-header">
+                    <div class="card-title"><i class="bi bi-calendar-event-fill u-text-accent"></i> Upcoming Events</div>
+                    <span class="u-fs075-grey400">Deadlines & Interviews</span>
+                </div>
+                <div class="events-tab-bar">
+                    <div class="events-tab active" id="eventsTab_deadlines" onclick="switchEventsTab('deadlines')">
+                        <i class="bi bi-alarm-fill u-text-danger-var"></i> Deadlines & Alerts
+                    </div>
+                    <div class="events-tab" id="eventsTab_interviews" onclick="switchEventsTab('interviews')">
+                        <i class="bi bi-camera-video-fill" style="color:var(--purple);"></i> Interviews
+                        <span id="eventsInterviewsCount" style="margin-left:0.35rem; background:var(--purple-light); color:var(--purple); border:1px solid rgba(139,92,246,0.25); border-radius:999px; min-width:1.35rem; height:1.35rem; display:inline-flex; align-items:center; justify-content:center; padding:0 0.35rem; font-size:0.7rem; font-weight:700; line-height:1;">0</span>
+                    </div>
+                </div>
+                <div class="events-tab-pane active" id="eventsPane_deadlines">
+                    {% if upcoming_drives %}
+                    <div class="deadline-list">
+                        {% set has_deadline = namespace(val=false) %}
+                        {% set has_scheduled = namespace(val=false) %}
+                        {% for drive in upcoming_drives %}
+                            {% if drive.application_deadline and drive.status == 'Approved' and drive.is_published_for_students %}
+                            {% set has_deadline.val = true %}
+                            {% set days_left = (drive.application_deadline - today.date()).days %}
+                            {% set badge_cls = 'urgent' if days_left <= 1 else 'warning' %}
+                            <div class="deadline-item" onclick="openDriveDetailModal({{ drive.id }})">
+                                <div class="deadline-badge {{ badge_cls }}">
+                                    <div class="day-num">{{ drive.application_deadline.strftime('%d') }}</div>
+                                    <div class="day-label">{{ drive.application_deadline.strftime('%b') }}</div>
+                                </div>
+                                <div class="deadline-info">
+                                    <div class="deadline-title">{{ drive.job_title }}</div>
+                                    <div class="deadline-sub">
+                                        <i class="bi bi-calendar-x me-1"></i>Due {{ drive.application_deadline.strftime('%d %b %Y') }}
+                                        {% if drive.application_deadline_time %}
+                                        <br><i class="bi bi-clock me-1"></i>{{ drive.application_deadline_time.strftime('%I:%M %p') }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="deadline-countdown {{ badge_cls }}">
+                                    {% if days_left < 0 %}Closed{% elif days_left == 0 %}Today{% elif days_left == 1 %}Tomorrow{% else %}{{ days_left }} days{% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% for drive in upcoming_drives %}
+                            {% if drive.status == 'Approved' and drive.publish_at_ist and not drive.is_published_for_students %}
+                                {% set has_scheduled.val = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if has_scheduled.val %}
+                        <div style="padding:0.35rem 1.5rem 0.25rem;font-size:0.7rem;font-weight:800;color:var(--grey-400);text-transform:uppercase;letter-spacing:0.5px;">Scheduled Student Publish</div>
+                        {% endif %}
+                        {% for drive in upcoming_drives %}
+                            {% if drive.status == 'Approved' and drive.publish_at_ist and not drive.is_published_for_students %}
+                            {% set days_to_publish = (drive.publish_at_ist.date() - today.date()).days %}
+                            {% set badge_cls = 'urgent' if days_to_publish <= 1 else 'warning' %}
+                            <div class="deadline-item" onclick="openDriveDetailModal({{ drive.id }})">
+                                <div class="deadline-badge {{ badge_cls }}">
+                                    <div class="day-num">{{ drive.publish_at_ist.strftime('%d') }}</div>
+                                    <div class="day-label">{{ drive.publish_at_ist.strftime('%b') }}</div>
+                                </div>
+                                <div class="deadline-info">
+                                    <div class="deadline-title">{{ drive.job_title }}</div>
+                                    <div class="deadline-sub">
+                                        <i class="bi bi-broadcast me-1"></i>Live for students on {{ drive.publish_at_ist.strftime('%d %b %Y') }}
+                                        <br><i class="bi bi-clock me-1"></i>{{ drive.publish_at_ist.strftime('%I:%M %p') }} IST
+                                    </div>
+                                </div>
+                                <span class="deadline-countdown {{ badge_cls }}">
+                                    {% if days_to_publish <= 0 %}Today{% elif days_to_publish == 1 %}Tomorrow{% else %}{{ days_to_publish }} days{% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not has_deadline.val and not has_scheduled.val %}
+                        <div class="u-empty-block">
+                            <i class="bi bi-check-circle" style="font-size:1.75rem; display:block; margin-bottom:0.5rem; color:var(--success);"></i>
+                            <div style="font-size:0.88rem; font-weight:600;">No upcoming deadlines</div>
+                            <div style="font-size:0.78rem; margin-top:0.25rem;">Approved drive deadlines and scheduled student publish alerts appear here.</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="u-empty-block">
+                        <i class="bi bi-calendar-x u-icon-lg-block"></i>
+                        <div class="u-fs088">No active drives</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <!-- Interviews tab - rendered by JS -->
+                <div class="events-tab-pane" id="eventsPane_interviews">
+                    <div class="u-empty-block">
+                        <i class="bi bi-camera-video u-icon-lg-block"></i>
+                        <div style="font-size:0.88rem; font-weight:600;">No interviews scheduled</div>
+                        <div style="font-size:0.78rem; margin-top:0.25rem;">Mark an application as Interview to schedule one.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FIX: Recent Active Drives — full width card -->
+        {% set recent_active_drives = upcoming_drives|selectattr('status','equalto','Approved')|list %}
+        {% if recent_active_drives %}
+        <div class="card" style="width:100%; margin-top:0;">
+            <div class="card-header-bar">
+                <div class="card-title"><i class="bi bi-clock-history"></i> Recent Active Drives</div>
+                <button class="btn-c btn-c-outline btn-c-sm" onclick="navigateToSection('active-drives')">View All <i class="bi bi-arrow-right"></i></button>
+            </div>
+            <div style="overflow-x:auto; width:100%;">
+                <table class="app-table" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Type</th>
+                            <th>Package</th>
+                            <th>Applications</th>
+                            <th>Shortlisted</th>
+                            <th>Interview</th>
+                            <th>Rejected</th>
+                            <th>Deadline</th>
+                            <th>Student Publish</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for drive in recent_active_drives[:6] %}
+                        {% set d_shortlisted = drive.applications|selectattr('status','equalto','Shortlisted')|list|length %}
+                        {% set d_interview   = drive.applications|selectattr('status','equalto','Interview')|list|length %}
+                        {% set d_rejected    = drive.applications|selectattr('status','equalto','Rejected')|list|length %}
+                        <tr>
+                            <td>
+                                <div style="font-weight:600; color:var(--grey-700);">{{ drive.job_title }}</div>
+                                {% if drive.location %}<small class="u-text-grey400"><i class="bi bi-geo-alt"></i> {{ drive.location }}</small>{% endif %}
+                            </td>
+                            <td style="font-size:0.82rem; color:var(--grey-600);">{{ drive.job_type or '—' }}</td>
+                            <td style="font-weight:700; color:var(--success);">{% if drive.salary %}₹{{ "{:,}".format(drive.salary) }} LPA{% else %}—{% endif %}</td>
+                            <td class="u-fw700-accent">{{ drive.applications|length }}</td>
+                            <td class="u-fw700-warning">{{ d_shortlisted }}</td>
+                            <td style="font-weight:700; color:var(--purple);">{{ d_interview }}</td>
+                            <td class="u-fw700-danger">{{ d_rejected }}</td>
+                            <td class="u-fs082-grey400">{% if drive.application_deadline %}{{ drive.application_deadline.strftime('%d %b %Y') }}{% else %}—{% endif %}</td>
+                            <td class="u-fs082-grey400">{% if drive.publish_at_ist %}{{ drive.publish_at_ist.strftime('%d %b %Y, %I:%M %p') }} IST{% else %}Immediate{% endif %}</td>
+                            <td>
+                                <button onclick="openDriveDetailModal({{ drive.id }})" class="btn-c btn-c-sm btn-c-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div><!-- end overview-section -->
+
+    <!-- ===== ACTIVE DRIVES SECTION ===== -->
+    <div class="content-section" id="active-drives-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-calendar-check"></i> Active Placement Drives</h1>
+            {% if company.approval_status == 'Approved' %}
+            <button onclick="openCreateDriveModal()" class="btn-c btn-c-primary"><i class="bi bi-plus-circle"></i> New Drive</button>
+            {% endif %}
+        </div>
+
+        {% set active_tab_drives = all_drives|rejectattr('status','equalto','Closed')|list %}
+        {% if active_tab_drives %}
+        <div class="drive-subtabs">
+            <button type="button" class="drive-subtab-btn active" id="activeViewBtn" onclick="switchActiveDriveView('active')">
+                <i class="bi bi-check-circle"></i> Active Drives
+            </button>
+            <button type="button" class="drive-subtab-btn" id="pendingRejectedViewBtn" onclick="switchActiveDriveView('pending_rejected')">
+                <i class="bi bi-hourglass-split"></i> Pending + Rejected
+            </button>
+        </div>
+        <div class="search-bar">
+            <div class="search-wrap"><i class="bi bi-search"></i><input type="text" class="search-input" id="searchActive" placeholder="Search by title, location, type…" oninput="filterActiveDrives()"></div>
+            <select class="filter-select" id="typeFilterActive" onchange="filterActiveDrives()">
+                <option value="">All Types</option>
+                <option value="full-time">Full-time</option>
+                <option value="internship">Internship</option>
+                <option value="contract">Contract</option>
+                <option value="part-time">Part-time</option>
+            </select>
+        </div>
+
+        <div class="table-wrap" id="activeDrivesGrid">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Drive ID</th>
+                        <th>Job Title</th>
+                        <th>Total Applications</th>
+                        <th>Shortlisted</th>
+                        <th>Rejected</th>
+                        <th>Vacancy Fill Rate</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {% for drive in active_tab_drives %}
+            {% set drive_status = (drive.status or '')|trim|lower %}
+            {% if drive_status == 'approved' %}
+            {% set d_shortlisted = drive.applications|selectattr('status','equalto','Shortlisted')|list|length %}
+            {% set d_selected    = drive.applications|selectattr('status','equalto','Placed')|list|length %}
+            {% set d_rejected    = drive.applications|selectattr('status','equalto','Rejected')|list|length %}
+            {% set fill_pct = ((d_selected / drive.vacancies) * 100)|round(0)|int if drive.vacancies and drive.vacancies > 0 else 0 %}
+            <tr class="drive-item-active"
+                 data-title="{{ drive.job_title|lower }}"
+                 data-driveid="{{ (drive.drive_id or ('d-' ~ drive.id))|lower }}"
+                 data-location="{{ drive.location|lower if drive.location else '' }}"
+                 data-type="{{ drive.job_type|lower if drive.job_type else '' }}"
+                 data-status="{{ drive_status }}"
+                 data-id="{{ drive.id }}">
+                <td>
+                    <span style="font-family:'Outfit',monospace; font-size:0.73rem; font-weight:700; background:rgba(37,99,235,0.08); color:var(--accent); padding:0.2rem 0.55rem; border-radius:6px;">
+                        {{ drive.drive_id if drive.drive_id else 'D-' ~ drive.id }}
+                    </span>
+                </td>
+                <td>
+                    <div style="font-weight:700; color:var(--grey-700);">{{ drive.job_title }}</div>
+                    <small style="color:var(--grey-400); font-size:0.76rem;">
+                        <i class="bi bi-calendar-event"></i>
+                        {% if drive.application_deadline %}
+                        {{ drive.application_deadline.strftime('%d %b %Y') }}
+                        {% else %}
+                        No deadline
+                        {% endif %}
+                        {% if drive.location %} · <i class="bi bi-geo-alt"></i> {{ drive.location }}{% endif %}
+                    </small>
+                </td>
+                <td class="u-fw700-accent">{{ drive.applications|length }}</td>
+                <td class="u-fw700-warning">{{ d_shortlisted }}</td>
+                <td class="u-fw700-danger">{{ d_rejected }}</td>
+                <td class="vacancy-fill-cell">
+                    {% if drive.vacancies and drive.vacancies > 0 %}
+                    <div style="font-size:0.78rem; font-weight:700; color:var(--grey-600);">{{ d_selected }} / {{ drive.vacancies }} ({{ [fill_pct, 100]|min }}%)</div>
+                    <div class="vacancy-fill-track">
+                        <div class="vacancy-fill-bar" style="width:{{ [fill_pct, 100]|min }}%; background:{% if fill_pct >= 80 %}linear-gradient(90deg,var(--success),#34d399){% elif fill_pct >= 40 %}linear-gradient(90deg,var(--warning),#fbbf24){% else %}linear-gradient(90deg,var(--danger),#f87171){% endif %};"></div>
+                    </div>
+                    {% else %}
+                    <span style="font-size:0.78rem; color:var(--grey-400);">Vacancies not set</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; min-width:210px;">
+                        <button onclick="openDriveDetailModal({{ drive.id }})" class="btn-c btn-c-primary btn-c-xs"><i class="bi bi-eye"></i> Details</button>
+                        <button onclick="openDriveApplicationsModal({{ drive.id }})" class="btn-c btn-c-primary btn-c-xs"><i class="bi bi-people-fill"></i> Applications</button>
+                        <button onclick="openEditDriveModal({{ drive.id }})" class="btn-c btn-c-warning btn-c-xs"><i class="bi bi-pencil-square"></i> Edit</button>
+                        <button onclick='openCloseDriveConfirm({{ drive.id }}, {{ drive.job_title|tojson }}); return false;' class="btn-c btn-c-warning btn-c-xs"><i class="bi bi-x-circle"></i> Close</button>
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="table-wrap" id="pendingRejectedDrivesGrid" style="display:none;">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Drive ID</th>
+                        <th>Job Title</th>
+                        <th>Registered Date</th>
+                        <th>Location</th>
+                        <th>Vacancies</th>
+                        <th>Status</th>
+                        <th>View</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for drive in active_tab_drives %}
+                    {% set drive_status = (drive.status or '')|trim|lower %}
+                    {% if drive_status in ['pending', 'rejected'] %}
+                    <tr class="drive-item-pending-rejected"
+                        data-title="{{ drive.job_title|lower }}"
+                        data-driveid="{{ (drive.drive_id or ('d-' ~ drive.id))|lower }}"
+                        data-location="{{ drive.location|lower if drive.location else '' }}"
+                        data-type="{{ drive.job_type|lower if drive.job_type else '' }}"
+                        data-status="{{ drive_status }}"
+                        data-id="{{ drive.id }}">
+                        <td>
+                            <span style="font-family:'Outfit',monospace; font-size:0.73rem; font-weight:700; background:rgba(37,99,235,0.08); color:var(--accent); padding:0.2rem 0.55rem; border-radius:6px;">
+                                {{ drive.drive_id if drive.drive_id else 'D-' ~ drive.id }}
+                            </span>
+                        </td>
+                        <td style="font-weight:700; color:var(--grey-700);">{{ drive.job_title }}</td>
+                        <td style="font-size:0.82rem; color:var(--grey-500);">
+                            {% if drive.created_at %}
+                            {{ drive.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.82rem; color:var(--grey-600);">{{ drive.location or '—' }}</td>
+                        <td style="font-weight:700; color:var(--grey-600);">{{ drive.vacancies or '—' }}</td>
+                        <td>
+                            <span class="badge-pill badge-{{ drive_status }}">
+                                <i class="bi bi-{{ 'clock' if drive_status == 'pending' else 'x-circle' }}"></i>{{ drive.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="openDriveDetailModal({{ drive.id }})" class="btn-c btn-c-primary btn-c-xs">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                        </td>
+                        <td>
+                            {% if drive_status == 'rejected' %}
+                            <button onclick="openDriveResubmitFlow({{ drive.id }})" class="btn-c btn-c-success btn-c-xs">
+                                <i class="bi bi-arrow-repeat"></i> Re-submit
+                            </button>
+                            {% else %}
+                            <button onclick="openEditDriveModal({{ drive.id }})" class="btn-c btn-c-warning btn-c-xs">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id="noActiveMsg" class="u-hidden"><div class="empty-state"><i class="bi bi-search"></i><h5>No Results</h5><p>Try different keywords or clear the filter.</p></div></div>
+
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-calendar-x"></i><h5>No Active Drives</h5><p>Create your first placement drive to start recruiting!</p>
+            {% if company.approval_status == 'Approved' %}
+            <button onclick="openCreateDriveModal()" class="btn-c btn-c-primary"><i class="bi bi-plus-circle"></i> Create Drive</button>
+            {% else %}
+            <div style="display:inline-flex; align-items:center; gap:0.5rem; color:var(--warning); font-weight:600; font-size:0.9rem; background:var(--warning-light); padding:0.6rem 1.2rem; border-radius:8px;"><i class="bi bi-hourglass-split"></i> Waiting for admin approval</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== PIPELINE SECTION ===== -->
+    <div class="content-section" id="pipeline-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-funnel-fill"></i> Applicant Pipeline</h1>
+            <span style="font-size:0.875rem; color:var(--grey-400);">{{ total_applications }} total</span>
+        </div>
+        {% if total_applications > 0 %}
+        <div class="search-bar">
+            <div class="search-wrap"><i class="bi bi-search"></i><input type="text" class="search-input" id="pipelineSearch" placeholder="Search by name, college, skills…" oninput="filterPipeline()"></div>
+            <select class="filter-select" id="pipelineStatusFilter" onchange="filterPipeline()">
+                <option value="">All Statuses</option>
+                <option value="applied">Applied</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="interview">Interview</option>
+                <option value="placed">Placed</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            <select class="filter-select" id="pipelineDriveFilter" onchange="filterPipeline()">
+                <option value="">All Drives</option>
+                {% for drive in all_drives %}<option value="{{ drive.id }}">{{ drive.job_title }}</option>{% endfor %}
+            </select>
+            <button class="btn-c btn-c-outline" type="button" onclick="togglePipelineAdvancedFilters()"><i class="bi bi-funnel"></i> Filter</button>
+        </div>
+        <div class="search-bar" id="pipelineAdvancedFilters" style="display:none; margin-top:-0.75rem;">
+            <input class="form-control-custom" id="pipelineMinCgpa" type="number" step="0.01" min="0" max="10" placeholder="Min CGPA">
+            <input class="form-control-custom" id="pipelineMinTenth" type="number" step="0.01" min="0" max="100" placeholder="Min 10th %">
+            <input class="form-control-custom" id="pipelineMinTwelfth" type="number" step="0.01" min="0" max="100" placeholder="Min 12th %">
+            <input class="form-control-custom" id="pipelineDegreeFilter" type="text" placeholder="Degree contains...">
+            <input class="form-control-custom" id="pipelineSkillsFilter" type="text" placeholder="Skills contains...">
+            <button class="btn-c btn-c-primary" type="button" onclick="filterPipeline()"><i class="bi bi-search"></i> Search</button>
+        </div>
+        <div class="table-wrap">
+            <table class="app-table" id="pipelineTable">
+                <thead>
+                    <tr><th>Student ID</th><th>Student</th><th>Academic</th><th>CGPA</th><th>Drive</th><th>Applied On</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="pipelineTbody">
+                    {% set row_num = namespace(n=0) %}
+                    {% for drive in all_drives %}
+                        {% for app in drive.applications|sort(attribute='application_date', reverse=true) %}
+                        {% set row_num.n = row_num.n + 1 %}
+                        <tr class="pipeline-row"
+                            data-name="{{ app.student.name|lower if app.student else '' }}"
+                            data-college="{{ app.student.college|lower if app.student and app.student.college else '' }}"
+                            data-degree="{{ app.student.degree|lower if app.student and app.student.degree else '' }}"
+                            data-skills="{{ app.student.skills|lower if app.student and app.student.skills else '' }}"
+                            data-cgpa="{{ app.student.cgpa if app.student and app.student.cgpa else '' }}"
+                            data-tenth="{{ app.student.tenth_percent if app.student and app.student.tenth_percent else '' }}"
+                            data-twelfth="{{ app.student.twelfth_percent if app.student and app.student.twelfth_percent else '' }}"
+                            data-drive="{{ drive.id }}"
+                            data-status="{{ app.status|lower }}">
+                            <td style="font-weight:700; color:var(--grey-500); font-family:'Outfit',monospace;">
+                                {{ app.student.student_id if app.student and app.student.student_id else ('#' ~ app.student.id if app.student else '—') }}
+                            </td>
+                            <td>
+                                <div style="font-weight:600; color:var(--grey-700);">{{ app.student.name if app.student else '—' }}</div>
+                                <small class="u-text-grey400">{{ app.student.email if app.student else '' }}</small>
+                            </td>
+                            <td>
+                                <div style="font-size:0.875rem;">{{ app.student.college or '—' if app.student else '—' }}</div>
+                                <small class="u-text-grey400">{{ app.student.degree or '' if app.student else '' }}{% if app.student and app.student.branch %} · {{ app.student.branch }}{% endif %}</small>
+                            </td>
+                            <td class="u-fw700-accent">{{ "%.2f"|format(app.student.cgpa) if app.student and app.student.cgpa else '—' }}</td>
+                            <td>
+                                <div style="font-weight:600; font-size:0.875rem;">{{ drive.job_title }}</div>
+                                <small style="font-family:'Outfit',monospace; font-size:0.72rem; color:var(--grey-400);">{{ drive.drive_id if drive.drive_id else 'D-'+drive.id|string }}</small>
+                            </td>
+                            <td class="u-fs082-grey400"><i class="bi bi-calendar3 me-1"></i>{{ app.application_date.strftime('%d %b %Y') }}</td>
+                            <td>
+                                <span class="badge-pill badge-{{ app.status|lower }}">
+                                    {% if app.status == 'Placed' %}<i class="bi bi-trophy-fill"></i>
+                                    {% elif app.status == 'Shortlisted' %}<i class="bi bi-bookmark-star-fill"></i>
+                                    {% elif app.status == 'Rejected' %}<i class="bi bi-x-circle-fill"></i>
+                                    {% elif app.status == 'Interview' %}<i class="bi bi-camera-video-fill"></i>
+                                    {% else %}<i class="bi bi-hourglass-split"></i>{% endif %}
+                                    {{ app.status }}
+                                </span>
+                            </td>
+                            <td><button onclick="openReviewFromPipeline({{ app.id }}, {{ drive.id }})" class="btn-c btn-c-sm btn-c-primary"><i class="bi bi-person-lines-fill"></i> Review</button></td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id="noPipelineMsg" class="u-hidden"><div class="empty-state" style="margin-top:1rem;"><i class="bi bi-search"></i><h5>No Matching Applicants</h5><p>Try clearing filters.</p></div></div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-inbox"></i><h5>No Applications Yet</h5><p>Applications from students will appear here once you have approved drives.</p></div>
+        {% endif %}
+    </div>
+
+    <!-- ===== CLOSED DRIVES SECTION ===== -->
+    <div class="content-section" id="closed-drives-section">
+                <div class="section-header"><h1 class="section-title"><i class="bi bi-archive"></i> Closed Drives</h1></div>
+        {% if closed_drives %}
+        <div class="search-bar">
+            <div class="search-wrap"><i class="bi bi-search"></i><input type="text" class="search-input" id="searchClosed" placeholder="Search closed drives…" oninput="filterClosedDrives()"></div>
+        </div>
+        <div class="table-wrap">
+            <table class="app-table">
+                <thead><tr><th>Drive ID</th><th>Job Title</th><th>Type</th><th>Closed On</th><th>Applications</th><th>Shortlisted</th><th>Interview</th><th>Placed</th><th>Rejected</th><th>Action</th></tr></thead>
+                <tbody id="closedTbody">
+                    {% for drive in closed_drives %}
+                    {% set d_short = drive.applications|selectattr('status','equalto','Shortlisted')|list|length %}
+                    {% set d_intv  = drive.applications|selectattr('status','equalto','Interview')|list|length %}
+                    {% set d_sel   = drive.applications|selectattr('status','equalto','Placed')|list|length %}
+                    {% set d_rej   = drive.applications|selectattr('status','equalto','Rejected')|list|length %}
+                    <tr class="closed-row" data-title="{{ drive.job_title|lower }}">
+                        <td><span style="font-family:'Outfit',monospace; font-size:0.73rem; font-weight:700; background:rgba(107,114,128,0.1); color:var(--grey-500); padding:0.2rem 0.55rem; border-radius:6px;">{{ drive.drive_id if drive.drive_id else 'D-'+drive.id|string }}</span></td>
+                        <td><div style="font-weight:600;">{{ drive.job_title }}</div><small class="u-text-grey400">{% if drive.salary %}₹{{ "{:,}".format(drive.salary) }} LPA · {% endif %}{% if drive.location %}{{ drive.location }}{% endif %}</small></td>
+                        <td style="font-size:0.82rem; color:var(--grey-500);">{{ drive.job_type or '—' }}</td>
+                        <td class="u-fs082-grey400"><i class="bi bi-calendar-x me-1"></i>{{ drive.closed_at.strftime('%d %b %Y') if drive.closed_at else '—' }}</td>
+                        <td class="u-fw700-accent">{{ drive.applications|length }}</td>
+                        <td class="u-fw700-warning">{{ d_short }}</td>
+                        <td style="font-weight:700; color:var(--purple);">{{ d_intv }}</td>
+                        <td style="font-weight:700; color:var(--success);">{{ d_sel }}</td>
+                        <td class="u-fw700-danger">{{ d_rej }}</td>
+                        <td>
+                            <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+                                <button onclick="openDriveDetailModal({{ drive.id }})" class="btn-c btn-c-sm btn-c-outline"><i class="bi bi-eye"></i> Details</button>
+                                <a href="/company/drive/reopen/{{ drive.id }}?section=active-drives"
+                                   class="btn-c btn-c-sm btn-c-success"
+                                   onclick="return confirm('Reopen this closed drive? It will move back to Active Drives.');">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reopen
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id="noClosedMsg" class="u-hidden"><div class="empty-state" style="margin-top:1rem;"><i class="bi bi-search"></i><h5>No Results</h5><p>Try different keywords.</p></div></div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-inbox"></i><h5>No Closed Drives</h5><p>Closed placement drives will appear here.</p></div>
+        {% endif %}
+    </div>
+
+    <!-- ===== ANALYTICS SECTION ===== -->
+    <div class="content-section" id="analytics-section">
+                <div class="section-header"><h1 class="section-title"><i class="bi bi-bar-chart-fill"></i> Placement Analytics</h1></div>
+
+        {% set ans = namespace(shortlisted=0, selected=0, rejected=0, interview=0, pending=0) %}
+        {% for drive in all_drives %}
+            {% set ans.shortlisted = ans.shortlisted + (drive.applications|selectattr('status','equalto','Shortlisted')|list|length) %}
+            {% set ans.selected    = ans.selected    + (drive.applications|selectattr('status','equalto','Placed')|list|length) %}
+            {% set ans.rejected    = ans.rejected    + (drive.applications|selectattr('status','equalto','Rejected')|list|length) %}
+            {% set ans.interview   = ans.interview   + (drive.applications|selectattr('status','equalto','Interview')|list|length) %}
+            {% set ans.pending     = ans.pending     + (drive.applications|selectattr('status','equalto','Applied')|list|length) %}
+        {% endfor %}
+        {% set success_ns = namespace(has_data=false) %}
+        {% for drive in all_drives %}
+            {% if drive.applications|length > 0 %}
+                {% set success_ns.has_data = true %}
+            {% endif %}
+        {% endfor %}
+        {% set breakdown_drives = (all_drives|selectattr('status','equalto','Approved')|list) + (all_drives|selectattr('status','equalto','Closed')|list) %}
+
+        <script>
+        window._analyticsData = {
+            statusDist: { pending: {{ ans.pending }}, shortlisted: {{ ans.shortlisted }}, interview: {{ ans.interview }}, selected: {{ ans.selected }}, rejected: {{ ans.rejected }} },
+            driveStatus: { approved: {{ approved_drives }}, pending: {{ pending_drives }}, closed: {{ closed_drives|length }} },
+            drives: [{% for drive in all_drives %}{ label: {{ drive.job_title|tojson }}, applications: {{ drive.applications|length }}, shortlisted: {{ drive.applications|selectattr('status','equalto','Shortlisted')|list|length }}, interview: {{ drive.applications|selectattr('status','equalto','Interview')|list|length }}, selected: {{ drive.applications|selectattr('status','equalto','Placed')|list|length }}, rejected: {{ drive.applications|selectattr('status','equalto','Rejected')|list|length }} }{% if not loop.last %},{% endif %}{% endfor %}],
+            drivesBreakdown: [{% for drive in breakdown_drives %}{ label: {{ drive.job_title|tojson }}, applications: {{ drive.applications|length }}, shortlisted: {{ drive.applications|selectattr('status','equalto','Shortlisted')|list|length }}, interview: {{ drive.applications|selectattr('status','equalto','Interview')|list|length }}, selected: {{ drive.applications|selectattr('status','equalto','Placed')|list|length }}, rejected: {{ drive.applications|selectattr('status','equalto','Rejected')|list|length }} }{% if not loop.last %},{% endif %}{% endfor %}],
+            totalApps: {{ total_applications }},
+            totalDrives: {{ total_drives }},
+            approvedDrives: {{ approved_drives }},
+            pendingDrives: {{ pending_drives }}
+        };
+        </script>
+
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-apps"><div class="kpi-val u-text-accent">{{ total_applications }}</div><div class="kpi-lbl">Total Applications</div></div>
+            <div class="kpi-card kpi-short"><div class="kpi-val" style="color:var(--warning);">{{ ans.shortlisted }}</div><div class="kpi-lbl">Shortlisted</div></div>
+            <div class="kpi-card kpi-intv"><div class="kpi-val" style="color:var(--purple);">{{ ans.interview }}</div><div class="kpi-lbl">In Interview</div></div>
+            <div class="kpi-card kpi-sel"><div class="kpi-val u-text-success">{{ ans.selected }}</div><div class="kpi-lbl">Placed</div></div>
+            <div class="kpi-card kpi-rej"><div class="kpi-val u-text-danger-var">{{ ans.rejected }}</div><div class="kpi-lbl">Rejected</div></div>
+        </div>
+
+        <div class="chart-row">
+            <div class="card">
+                <div class="card-header-bar"><div class="card-title"><i class="bi bi-pie-chart-fill"></i> Application Status Distribution</div></div>
+                <div class="chart-canvas-wrap">
+                    {% if total_applications > 0 %}
+                    <div style="max-width:240px; margin:0 auto;"><canvas id="statusDonut" height="240"></canvas></div>
+                    <div class="chart-legend" style="margin-top:1.25rem; justify-content:center;">
+                        <div class="chart-legend-item"><div class="legend-dot" style="background:#f59e0b;"></div><span class="legend-label">Pending</span><span class="legend-val">{{ ans.pending }}</span></div>
+                        <div class="chart-legend-item"><div class="legend-dot" style="background:#eab308;"></div><span class="legend-label">Shortlisted</span><span class="legend-val">{{ ans.shortlisted }}</span></div>
+                        <div class="chart-legend-item"><div class="legend-dot" style="background:#8b5cf6;"></div><span class="legend-label">Interview</span><span class="legend-val">{{ ans.interview }}</span></div>
+                        <div class="chart-legend-item"><div class="legend-dot" style="background:#10b981;"></div><span class="legend-label">Placed</span><span class="legend-val">{{ ans.selected }}</span></div>
+                        <div class="chart-legend-item"><div class="legend-dot" style="background:#ef4444;"></div><span class="legend-label">Rejected</span><span class="legend-val">{{ ans.rejected }}</span></div>
+                    </div>
+                    {% else %}
+                    <div style="text-align:center; padding:2.5rem; color:var(--grey-300);"><i class="bi bi-pie-chart" style="font-size:2.5rem; display:block; margin-bottom:0.75rem;"></i>No data</div>
+                    {% endif %}
+                </div>
+                <div class="analytics-desc">Overall breakdown of where all your applicants currently stand across every drive combined.</div>
+            </div>
+            <div class="card">
+                <div class="card-header-bar"><div class="card-title"><i class="bi bi-circle-half"></i> Drive Status</div></div>
+                <div class="chart-canvas-wrap" style="padding-bottom:0.5rem;">
+                    <div style="max-width:160px; margin:0 auto;"><canvas id="driveStatusDonut" height="160"></canvas></div>
+                </div>
+                <div class="chart-mini-stats">
+                    <div class="chart-mini-stat"><div class="cms-val u-text-success">{{ approved_drives }}</div><div class="cms-lbl">Active</div></div>
+                    <div class="chart-mini-stat"><div class="cms-val" style="color:var(--warning);">{{ pending_drives }}</div><div class="cms-lbl">Pending</div></div>
+                    <div class="chart-mini-stat"><div class="cms-val" style="color:var(--grey-500);">{{ closed_drives|length }}</div><div class="cms-lbl">Closed</div></div>
+                </div>
+                <div class="analytics-desc">Current status distribution of all placement drives.</div>
+            </div>
+        </div>
+
+        <div class="chart-row" {% if not success_ns.has_data %}style="grid-template-columns:1fr;"{% endif %}>
+            {% if success_ns.has_data %}
+            <div class="card">
+                <div class="card-header-bar"><div class="card-title"><i class="bi bi-graph-up"></i> Success Rate per Drive</div></div>
+                <div class="chart-canvas-wrap">
+                    <div class="chart-scroll-y">
+                        <canvas id="successRateChart"></canvas>
+                    </div>
+                </div>
+                <div class="analytics-desc">Percentage of applicants selected per drive.</div>
+            </div>
+            {% endif %}
+            <div class="card">
+                <div class="card-header-bar"><div class="card-title"><i class="bi bi-x-octagon-fill u-text-danger-var"></i> Rejection Reason Analysis</div></div>
+                <div class="card-body analytics-scroll-y" style="padding-top:0.5rem;">
+                    {% set reject_ns = namespace(remarks=[]) %}
+                    {% for drive in all_drives %}
+                        {% for app in drive.applications %}
+                            {% if app.status == 'Rejected' and app.remark %}
+                                {% set words = app.remark.split() %}
+                                {% for w in words %}
+                                    {% if w|length > 4 %}{% set _ = reject_ns.remarks.append(w.lower().strip('.,!?;:')) %}{% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% if reject_ns.remarks %}
+                        {% set rw_count = namespace(items={}) %}
+                        {% for w in reject_ns.remarks %}
+                            {% if w in rw_count.items %}{% set _ = rw_count.items.update({w: rw_count.items[w] + 1}) %}
+                            {% else %}{% set _ = rw_count.items.update({w: 1}) %}{% endif %}
+                        {% endfor %}
+                        {% set sorted_rw = rw_count.items|dictsort(by='value', reverse=true) %}
+                        {% set max_rw = sorted_rw[0][1] if sorted_rw else 1 %}
+                        {% for rw_word, rw_cnt in sorted_rw[:20] %}
+                        <div class="rejection-bar-item">
+                            <div class="rejection-bar-label" title="{{ rw_word }}">{{ rw_word }}</div>
+                            <div class="rejection-bar-track">
+                                <div class="rejection-bar-fill" style="width:{{ ((rw_cnt / max_rw) * 100)|round(0)|int }}%;"><span class="rejection-bar-count">{{ rw_cnt }}</span></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div style="text-align:center; padding:2rem; color:var(--grey-300);"><i class="bi bi-chat-text" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>No rejection remarks yet.</div>
+                    {% endif %}
+                </div>
+                <div class="analytics-desc">Word frequency from rejection remarks — helps identify common rejection reasons.</div>
+            </div>
+        </div>
+
+        {% if breakdown_drives %}
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header-bar"><div class="card-title"><i class="bi bi-activity"></i> Drive-wise Breakdown</div><span class="u-fs075-grey400"><i class="bi bi-arrows-expand-horizontal me-1"></i>Scroll to see all drives</span></div>
+            <div class="chart-scroll-hint"><i class="bi bi-hand-index-thumb"></i> Slide the chart left/right to view all drives</div>
+            <div class="chart-scroll-outer">
+                <div style="min-width:{{ [breakdown_drives|length * 90, 600]|max }}px; padding:0 1.5rem 1.5rem;">
+                    <canvas id="stackedDriveBar" height="{{ [120 + breakdown_drives|length * 4, 220]|min }}"></canvas>
+                </div>
+            </div>
+            <div class="analytics-desc">Stacked bar chart showing breakdown of each drive's applications by stage.</div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header-bar">
+                <div class="card-title"><i class="bi bi-person-check-fill u-text-success"></i> Vacancy Fill Rate</div>
+                <span class="u-fs075-grey400">Placed ÷ Vacancies per drive</span>
+            </div>
+            <div class="fill-rate-list" style="max-height:280px; overflow-y:auto;">
+                {% set fill_found = namespace(val=false) %}
+                {% for drive in all_drives %}
+                    {% if drive.vacancies and drive.vacancies > 0 %}
+                        {% set fill_found.val = true %}
+                        {% set d_sel = drive.applications|selectattr('status','equalto','Placed')|list|length %}
+                        {% set fill_pct = [(d_sel / drive.vacancies * 100)|round(0)|int, 100]|min %}
+                        <div class="fill-rate-item" onclick="openDriveDetailModal({{ drive.id }})" style="cursor:pointer; padding:0.6rem 0.75rem; border-radius:8px; transition:background 0.2s;" onmouseenter="this.style.background='rgba(37,99,235,0.04)'" onmouseleave="this.style.background='transparent'">
+                            <div class="fill-rate-header">
+                                <div class="fill-rate-name">{{ drive.job_title|truncate(30, true) }} <span class="badge-pill badge-{{ drive.status|lower }}" style="font-size:0.65rem; padding:0.1rem 0.4rem;">{{ drive.status }}</span></div>
+                                <div class="fill-rate-numbers">{{ d_sel }} / {{ drive.vacancies }}</div>
+                            </div>
+                            <div class="fill-rate-bar">
+                                <div class="fill-rate-fill" style="width:{{ fill_pct }}%; background:{% if fill_pct >= 80 %}linear-gradient(90deg,var(--success),#34d399){% elif fill_pct >= 40 %}linear-gradient(90deg,var(--warning),#fbbf24){% else %}linear-gradient(90deg,var(--danger),#f87171){% endif %};"></div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                {% if not fill_found.val %}
+                <div style="padding:1.25rem 0; text-align:center; color:var(--grey-400);">
+                    <div class="u-fs088">No drives with vacancy data</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+
+    <!-- ===== COMPANY PROFILE SECTION ===== -->
+    <div class="content-section" id="profile-section">
+        <div class="section-header">
+            <h1 class="section-title"><i class="bi bi-building-fill"></i> Company Profile</h1>
+            <button onclick="openEditProfileModal()" class="btn-c btn-c-primary"><i class="bi bi-pencil-square"></i> Edit Profile</button>
+        </div>
+        <div class="profile-view-card">
+            <div class="profile-view-header">
+                <div class="profile-view-avatar">{{ company.company_name[0].upper() if company else 'C' }}</div>
+                <div>
+                    <div class="profile-view-name">{{ company.company_name if company else 'Company Name' }}</div>
+                    <div class="profile-view-id">{{ company.company_id if company and company.company_id else 'ID not assigned' }}</div>
+                    <div class="profile-view-sub">
+                        {% if company and company.industry %}{{ company.industry }}{% endif %}
+                        {% if company and company.location %} · {{ company.location }}{% endif %}
+                        &nbsp;·&nbsp;
+                        <span style="color:{% if company and company.approval_status == 'Approved' %}#6ee7b7{% else %}#fcd34d{% endif %}; font-weight:700;">{{ company.approval_status if company else 'Pending' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-section">
+                <div class="profile-section-heading"><i class="bi bi-building"></i> Company Information</div>
+                <div class="profile-fields-grid">
+                    <div class="profile-field-card"><div class="label">Company Name</div><div class="value">{{ company.company_name if company else '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Company ID</div><div class="value" style="font-family:'Outfit',monospace; color:var(--accent); font-weight:800;">{{ company.company_id if company and company.company_id else '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Industry</div><div class="value">{{ company.industry or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Company Size</div><div class="value">{{ company.company_size or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Headquarters</div><div class="value">{{ company.location or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Website</div><div class="value">{% if company and company.website %}<a href="{{ company.website }}" target="_blank">{{ company.website }}</a>{% else %}—{% endif %}</div></div>
+                    {% if company and company.description %}<div class="profile-field-card" style="grid-column:1/-1;"><div class="label">Description</div><div class="value" style="font-weight:400; line-height:1.6; font-size:0.88rem;">{{ company.description }}</div></div>{% endif %}
+                </div>
+            </div>
+            <div class="profile-section">
+                <div class="profile-section-heading"><i class="bi bi-person-badge"></i> HR / Contact Details</div>
+                <div class="profile-fields-grid">
+                    <div class="profile-field-card"><div class="label">HR Contact Name</div><div class="value">{{ company.hr_contact or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">HR Designation</div><div class="value">{{ company.hr_designation or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Login Email</div><div class="value">{{ company.email if company else '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Alternate Email</div><div class="value">{{ company.alt_email or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Mobile</div><div class="value">{{ company.mobile or '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Office Number</div><div class="value">{{ company.office_number or '—' }}</div></div>
+                </div>
+            </div>
+            <div class="profile-section">
+                <div class="profile-section-heading"><i class="bi bi-shield-check"></i> Account Status</div>
+                <div class="profile-fields-grid">
+                    <div class="profile-field-card"><div class="label">Approval Status</div><div class="value" style="color:{% if company and company.approval_status == 'Approved' %}var(--success){% else %}var(--warning){% endif %}; font-weight:800;"><i class="bi bi-{% if company and company.approval_status == 'Approved' %}check-circle-fill{% else %}clock-fill{% endif %} me-1"></i>{{ company.approval_status if company else '—' }}</div></div>
+                    <div class="profile-field-card"><div class="label">Account Active</div><div class="value u-text-success">{% if company and company.is_active %}<i class="bi bi-check-circle-fill me-1"></i>Active{% else %}<i class="bi bi-x-circle-fill me-1 u-text-danger-var"></i>Inactive{% endif %}</div></div>
+                    <div class="profile-field-card"><div class="label">Member Since</div><div class="value">{{ company.created_at.strftime('%d %b %Y') if company and company.created_at else '—' }}</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NOTIFICATIONS & BROADCASTS SECTION ===== -->
+    <div class="content-section" id="broadcasts-section">
+                <div class="section-header"><h1 class="section-title"><i class="bi bi-inbox-fill"></i> Notifications & Broadcasts</h1></div>
+        <div id="notifBroadcastFeed">
+        {% if notifications_seed %}
+            {% for item in notifications_seed %}
+            <div class="feed-item {{ item.kind }}">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:0.35rem;">
+                    <div style="display:flex; align-items:flex-start; gap:0.65rem;">
+                        <span class="feed-head-icon {{ item.kind }}">
+                            <i class="bi {% if item.kind == 'broadcast' %}bi-megaphone-fill{% else %}{{ item.icon or 'bi-bell-fill' }}{% endif %}"></i>
+                        </span>
+                        <div>
+                            {% if item.kind == 'broadcast' %}
+                            <div class="broadcast-subject">{{ item.subject }}</div>
+                            {% else %}
+                            <div class="feed-body" style="font-weight:700; color:#1e3a8a;">Notification Update</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="feed-kind-label {{ item.kind }}">
+                        {% if item.kind == 'broadcast' %}<i class="bi bi-megaphone-fill"></i>Broadcast{% else %}<i class="bi bi-bell-fill"></i>Notification{% endif %}
+                    </span>
+                </div>
+                <div class="feed-meta">
+                    <span><i class="bi bi-calendar3 me-1"></i>{{ item.created_at if item.created_at else item.time }}</span>
+                    {% if item.kind == 'broadcast' %}
+                    <span><i class="bi bi-person-fill me-1"></i>Admin</span>
+                    <span><i class="bi bi-bullseye me-1"></i>{{ item.target or 'All' }}</span>
+                    {% endif %}
+                </div>
+                {% if item.kind == 'broadcast' %}
+                <div class="broadcast-body">{{ item.text }}</div>
+                {% else %}
+                <div class="feed-body">{{ item.text|safe }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding:2.5rem;"><i class="bi bi-inbox"></i><h5>No Notifications Yet</h5><p>Notifications and admin broadcasts will appear here.</p></div>
+        {% endif %}
+        </div>
+    </div>
+
+    <!-- ===== SUPPORT SECTION ===== -->
+    <div class="content-section" id="support-section">
+                <div class="section-header"><h1 class="section-title"><i class="bi bi-ticket-perforated-fill"></i> Support</h1></div>
+        <div class="card" style="margin-bottom:1.75rem;">
+            <div class="card-header-bar"><div class="card-title"><i class="bi bi-plus-circle-fill u-text-accent"></i> Submit a Support Request</div></div>
+            <div class="card-body">
+                <form action="{{ url_for('submit_company_support_ticket', section='support') }}" method="POST" novalidate>
+                    <div class="form-row form-row-2 u-mb-1">
+                        <div class="form-group u-mb-0">
+                            <label class="form-label">Company ID</label>
+                            <input type="text" class="form-control-custom u-bg-grey50-text-grey400" value="{{ company.company_id if company and company.company_id else 'N/A' }}" readonly>
+                        </div>
+                        <div class="form-group u-mb-0">
+                            <label class="form-label">Login Email</label>
+                            <input type="text" class="form-control-custom u-bg-grey50-text-grey400" value="{{ company.email if company and company.email else 'N/A' }}" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row form-row-2 u-mb-1">
+                        <div class="form-group u-mb-0">
+                            <label class="form-label">Category</label>
+                            <div class="select-wrapper"><i class="select-icon bi bi-tag"></i>
+                                <select name="category" class="form-control-custom">
+                                    <option value="General">General</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="Drive">Drive Related</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group u-mb-0">
+                            <label class="form-label">Subject <span class="required">*</span></label>
+                            <input type="text" name="subject" class="form-control-custom" placeholder="Brief summary of your issue" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Message <span class="required">*</span></label>
+                        <textarea name="message" class="form-control-custom" rows="4" placeholder="Describe your issue in detail…" required></textarea>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button type="submit" class="btn-c btn-c-primary"><i class="bi bi-send-fill"></i> Submit Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div style="margin-bottom:1rem; font-size:1rem; font-weight:700; color:var(--grey-700); display:flex; align-items:center; gap:0.5rem;"><i class="bi bi-clock-history u-text-accent"></i> Your Previous Tickets</div>
+        {% if company_tickets %}
+            {% for ticket in company_tickets %}
+            <div class="ticket-item {{ ticket.status|lower|replace(' ', '-') }}">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:0.25rem;">
+                    <div class="ticket-subject">{{ ticket.subject }}</div>
+                    <span class="badge-pill badge-{{ 'warning' if ticket.status == 'Open' else 'applied' if ticket.status == 'In Progress' else 'selected' if ticket.status == 'Resolved' else 'closed' }}">{{ ticket.status }}</span>
+                </div>
+                <div class="ticket-meta">
+                    <span><i class="bi bi-tag me-1"></i>{{ ticket.category }}</span>
+                    <span><i class="bi bi-calendar3 me-1"></i>{{ ticket.created_at.strftime('%d %b %Y') if ticket.created_at else '—' }}</span>
+                    {% if ticket.resolved_at %}<span><i class="bi bi-check-circle me-1"></i>Resolved {{ ticket.resolved_at.strftime('%d %b %Y') }}</span>{% endif %}
+                </div>
+                <div class="ticket-message">{{ ticket.message }}</div>
+                {% if ticket.admin_reply %}
+                <div class="ticket-reply">
+                    <div class="ticket-reply-label"><i class="bi bi-reply-fill me-1"></i> Admin Response{% if ticket.replied_at %} · {{ ticket.replied_at.strftime('%d %b %Y') }}{% endif %}</div>
+                    <div class="ticket-reply-text">{{ ticket.admin_reply }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding:2.5rem;"><i class="bi bi-ticket-perforated"></i><h5>No Tickets Yet</h5><p>Submitted support requests will appear here.</p></div>
+        {% endif %}
+    </div>
+
+</main>
+
+<!-- ================================================================
+     MODALS
+================================================================ -->
+
+<!-- HR Details Modal -->
+<div class="modal-overlay" id="hrDetailOverlay" onclick="handleOverlayClick(event,'hrDetailOverlay')">
+    <div class="modal-panel modal-sm" onclick="event.stopPropagation()">
+        <div class="modal-hdr"><div><div class="modal-hdr-title"><i class="bi bi-person-badge-fill"></i> HR Contact Details</div></div><button class="modal-close-btn" onclick="closeModal('hrDetailOverlay')"><i class="bi bi-x-lg"></i></button></div>
+        <div class="modal-bd"><div id="hrDetailBody"></div></div>
+        <div class="modal-ft"><button class="btn-c btn-c-outline" onclick="closeModal('hrDetailOverlay')">Close</button><button class="btn-c btn-c-primary" onclick="closeModal('hrDetailOverlay'); openEditProfileModal();"><i class="bi bi-pencil-square"></i> Edit Profile</button></div>
+    </div>
+</div>
+
+<!-- Drive Detail Modal -->
+<div class="modal-overlay" id="driveDetailOverlay" onclick="handleOverlayClick(event,'driveDetailOverlay')">
+    <div class="modal-panel modal-xxl" onclick="event.stopPropagation()" style="max-height:92vh;">
+        <div class="modal-hdr">
+            <div>
+                <div class="modal-hdr-title" id="driveDetailTitle"><i class="bi bi-briefcase-fill"></i> Drive Details</div>
+                <div class="modal-hdr-sub" id="driveDetailSub"></div>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('driveDetailOverlay')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-bd" id="driveDetailBody"></div>
+        <div class="modal-bd" style="padding-top:0;" id="driveDetailHintWrap">
+        </div>
+        <div class="modal-ft">
+            <button class="btn-c btn-c-outline" onclick="closeModal('driveDetailOverlay')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Drive Modal -->
+<div class="modal-overlay" id="createDriveOverlay" onclick="handleOverlayClick(event,'createDriveOverlay')">
+    <div class="modal-panel modal-lg" onclick="event.stopPropagation()">
+        <div class="modal-hdr">
+            <div><div class="modal-hdr-title"><i class="bi bi-plus-circle-fill"></i> Create New Placement Drive</div><div class="modal-hdr-sub">Fill in the details below. Drive will go for admin approval before students can apply.</div></div>
+            <button class="modal-close-btn" onclick="closeModal('createDriveOverlay')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <form id="createDriveForm" action="{{ url_for('create_drive') }}" method="POST" novalidate>
+            <input type="hidden" name="return_section" value="active-drives">
+            <div class="modal-bd">
+                <div class="modal-section-title"><i class="bi bi-briefcase"></i> Job Information</div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Job Title <span class="required">*</span></label><input type="text" name="job_title" class="form-control-custom" placeholder="e.g. Software Engineer" required minlength="3" maxlength="150"><div class="invalid-feedback">Please enter a valid job title.</div></div>
+                    <div class="form-group"><label class="form-label">Job Type <span class="required">*</span></label><div class="select-wrapper"><i class="select-icon bi bi-briefcase"></i><select name="job_type" class="form-control-custom" required><option value="">— Select Type —</option><option>Full-time</option><option>Internship</option><option>Contract</option><option>Part-time</option></select></div><div class="invalid-feedback">Please select a job type.</div></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Work Mode</label><div class="select-wrapper"><i class="select-icon bi bi-display"></i><select name="work_mode" class="form-control-custom"><option value="">— Select Mode —</option><option>On-site</option><option>Remote</option><option>Hybrid</option></select></div></div>
+                    <div class="form-group"><label class="form-label">Experience Level</label><div class="select-wrapper"><i class="select-icon bi bi-bar-chart-steps"></i><select name="experience_level" class="form-control-custom"><option value="">— Select Level —</option><option>Fresher (0 years)</option><option>Junior (0–2 years)</option><option>Mid (2–5 years)</option><option>Senior (5+ years)</option></select></div></div>
+                </div>
+                <div class="form-group"><label class="form-label">Job Description <span class="required">*</span></label><textarea name="job_description" class="form-control-custom" rows="4" placeholder="Describe the role, responsibilities, and what you're looking for…" required minlength="20"></textarea><div class="invalid-feedback">Please enter a job description (min 20 characters).</div></div>
+                <div class="modal-section-title mt-3"><i class="bi bi-people"></i> Hiring Details</div>
+                <div class="form-row form-row-3">
+                    <div class="form-group"><label class="form-label">CTC / Stipend (LPA)</label><input type="number" name="salary" class="form-control-custom" placeholder="e.g. 12" min="0"><div class="input-hint">In Lakhs Per Annum</div></div>
+                    <div class="form-group"><label class="form-label">Vacancies</label><input type="number" name="vacancies" class="form-control-custom" placeholder="e.g. 5" min="1"></div>
+                    <div class="form-group"><label class="form-label">Job Location</label><input type="text" name="location" class="form-control-custom" placeholder="e.g. Bangalore, Remote"></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Application Deadline</label><input type="date" name="deadline" class="form-control-custom" id="cd_deadline"><div class="input-hint">Leave blank for open-ended</div></div>
+                    <div class="form-group"><label class="form-label">Deadline Time</label><input type="time" name="deadline_time" class="form-control-custom" id="cd_deadline_time"><div class="input-hint">Optional</div></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Publish Date <span class="required">*</span></label><input type="date" name="publish_date" class="form-control-custom" id="cd_publish_date" required><div class="input-hint">Drive becomes visible to students on this date</div></div>
+                    <div class="form-group"><label class="form-label">Publish Time <span class="required">*</span></label><input type="time" name="publish_time" class="form-control-custom" id="cd_publish_time" required><div class="input-hint">Indian timeline (IST)</div></div>
+                </div>
+                <div class="form-group" style="margin-top:-0.35rem;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="cd_publish_immediately" name="publish_immediately">
+                        <label class="form-check-label" for="cd_publish_immediately">
+                            Publish immediately after admin approval
+                        </label>
+                    </div>
+                    <div class="input-hint">If enabled, publish date/time is not required.</div>
+                </div>
+                <div class="form-group"><label class="form-label">Selection Process</label><input type="text" name="selection_process" class="form-control-custom" placeholder="e.g. Aptitude -> Technical -> HR"></div>
+                <div class="modal-section-title mt-3"><i class="bi bi-mortarboard"></i> Eligibility & Skills</div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Eligibility Criteria</label><input type="text" name="eligibility" class="form-control-custom" placeholder="e.g. Min CGPA 7.0, B.Tech/BE (CS/IT)"></div>
+                    <div class="form-group"><label class="form-label">Required Skills</label><input type="text" name="required_skills" class="form-control-custom" placeholder="e.g. Python, React, SQL"><div class="input-hint">Comma-separated</div></div>
+                </div>
+                <div class="form-group"><label class="form-label">Additional Notes</label><textarea name="additional_notes" class="form-control-custom" rows="2" placeholder="Any extra information for applicants…"></textarea></div>
+            </div>
+            <div class="modal-ft">
+                <button type="button" class="btn-c btn-c-outline" onclick="closeModal('createDriveOverlay')">Cancel</button>
+                <button type="submit" class="btn-c btn-c-primary" id="createDriveSubmitBtn"><i class="bi bi-send-fill"></i> Submit for Approval</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Drive Modal -->
+<div class="modal-overlay" id="editDriveOverlay" onclick="handleOverlayClick(event,'editDriveOverlay')">
+    <div class="modal-panel modal-lg" onclick="event.stopPropagation()">
+        <div class="modal-hdr">
+            <div><div class="modal-hdr-title" id="editDriveModalTitle"><i class="bi bi-pencil-square"></i> Edit Placement Drive</div><div class="modal-hdr-sub" id="editDriveSubtitle">Drive ID: —</div></div>
+            <button class="modal-close-btn" onclick="closeModal('editDriveOverlay')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <form id="editDriveForm" method="POST" novalidate>
+            <input type="hidden" name="return_section" value="active-drives">
+            <div id="editDriveResubmitHint" style="display:none; margin:0.9rem 1.25rem 0; background:rgba(245,158,11,0.1); border:1.5px solid rgba(245,158,11,0.3); color:#92400e; border-radius:10px; padding:0.65rem 0.8rem; font-size:0.8rem; font-weight:700;">
+                <i class="bi bi-info-circle-fill"></i> Check all drive details before re-submitting. Update required fields if needed, then click <strong>Re-submit for Approval</strong>.
+            </div>
+            <div class="modal-bd">
+                <div class="modal-section-title"><i class="bi bi-briefcase"></i> Job Information</div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Job Title <span class="required">*</span></label><input type="text" name="job_title" id="edit_job_title" class="form-control-custom" required minlength="3"></div>
+                    <div class="form-group"><label class="form-label">Job Type <span class="required">*</span></label><div class="select-wrapper"><i class="select-icon bi bi-briefcase"></i><select name="job_type" id="edit_job_type" class="form-control-custom" required><option value="">— Select Type —</option><option>Full-time</option><option>Internship</option><option>Contract</option><option>Part-time</option></select></div></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Work Mode</label><div class="select-wrapper"><i class="select-icon bi bi-display"></i><select name="work_mode" id="edit_work_mode" class="form-control-custom"><option value="">— Select Mode —</option><option>On-site</option><option>Remote</option><option>Hybrid</option></select></div></div>
+                    <div class="form-group"><label class="form-label">Experience Level</label><div class="select-wrapper"><i class="select-icon bi bi-bar-chart-steps"></i><select name="experience_level" id="edit_experience_level" class="form-control-custom"><option value="">— Select Level —</option><option>Fresher (0 years)</option><option>Junior (0–2 years)</option><option>Mid (2–5 years)</option><option>Senior (5+ years)</option></select></div></div>
+                </div>
+                <div class="form-group"><label class="form-label">Job Description <span class="required">*</span></label><textarea name="job_description" id="edit_job_description" class="form-control-custom" rows="4" required minlength="20"></textarea></div>
+                <div class="modal-section-title mt-3"><i class="bi bi-people"></i> Hiring Details</div>
+                <div class="form-row form-row-3">
+                    <div class="form-group"><label class="form-label">CTC / Stipend (LPA)</label><input type="number" name="salary" id="edit_salary" class="form-control-custom" min="0"></div>
+                    <div class="form-group"><label class="form-label">Vacancies</label><input type="number" name="vacancies" id="edit_vacancies" class="form-control-custom" min="1"></div>
+                    <div class="form-group"><label class="form-label">Job Location</label><input type="text" name="location" id="edit_location" class="form-control-custom"></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Application Deadline</label><input type="date" name="deadline" id="edit_deadline" class="form-control-custom"></div>
+                    <div class="form-group"><label class="form-label">Deadline Time</label><input type="time" name="deadline_time" id="edit_deadline_time" class="form-control-custom"></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Publish Date</label><input type="date" name="publish_date" id="edit_publish_date" class="form-control-custom"></div>
+                    <div class="form-group"><label class="form-label">Publish Time</label><input type="time" name="publish_time" id="edit_publish_time" class="form-control-custom"></div>
+                </div>
+                <div class="form-group" style="margin-top:-0.35rem;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="edit_publish_immediately" name="publish_immediately">
+                        <label class="form-check-label" for="edit_publish_immediately">
+                            Publish immediately after admin approval
+                        </label>
+                    </div>
+                    <div class="input-hint">If enabled, publish date/time will be cleared.</div>
+                </div>
+                <div class="form-group"><label class="form-label">Selection Process</label><input type="text" name="selection_process" id="edit_selection_process" class="form-control-custom"></div>
+                <div class="modal-section-title mt-3"><i class="bi bi-mortarboard"></i> Eligibility & Skills</div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Eligibility Criteria</label><input type="text" name="eligibility" id="edit_eligibility" class="form-control-custom"></div>
+                    <div class="form-group"><label class="form-label">Required Skills</label><input type="text" name="required_skills" id="edit_required_skills" class="form-control-custom"><div class="input-hint">Comma-separated</div></div>
+                </div>
+                <div class="form-group"><label class="form-label">Additional Notes</label><textarea name="additional_notes" id="edit_additional_notes" class="form-control-custom" rows="2"></textarea></div>
+            </div>
+            <div class="modal-ft">
+                <button type="button" class="btn-c btn-c-outline" onclick="closeModal('editDriveOverlay')">Cancel</button>
+                <button type="submit" id="editDriveSubmitBtn" class="btn-c btn-c-warning"><i class="bi bi-check2-circle"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Review Application Modal -->
+<div class="modal-overlay" id="reviewOverlay" onclick="handleOverlayClick(event,'reviewOverlay')">
+    <div class="modal-panel modal-xl" onclick="event.stopPropagation()">
+        <div class="modal-hdr">
+            <div><div class="modal-hdr-title"><i class="bi bi-person-lines-fill"></i> Review Application</div><div class="modal-hdr-sub" id="reviewModalSubtitle">Loading…</div></div>
+            <button class="modal-close-btn" onclick="closeReviewGoBack()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div id="reviewModalLoader" style="display:flex; align-items:center; justify-content:center; padding:4rem 2rem;">
+            <div style="text-align:center; color:var(--grey-400);">
+                <div class="spinner-border" style="color:var(--accent); width:2.5rem; height:2.5rem;" role="status"></div>
+                <div style="margin-top:1rem; font-size:0.9rem;">Loading applicant data…</div>
+            </div>
+        </div>
+        <div id="reviewModalContent" class="u-hidden">
+            <div class="modal-bd">
+                <div class="student-profile-header" id="reviewStudentHeader">
+                    <div class="student-avatar-lg" id="reviewStudentAvatar"></div>
+                    <div class="student-profile-info">
+                        <h3 id="reviewStudentName"></h3>
+                        <p id="reviewStudentEmail"></p>
+                        <div class="student-quick-tags" id="reviewStudentTags"></div>
+                    </div>
+                </div>
+                <div class="profile-grid" id="reviewProfileGrid"></div>
+                <div id="reviewSkillsSection" style="display:none; margin-bottom:1.25rem;">
+                    <div style="font-size:0.78rem; font-weight:700; color:var(--grey-400); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.5rem;">Skills</div>
+                    <div class="skills-tags" id="reviewSkillsTags"></div>
+                </div>
+                <div style="background:var(--grey-50); border-radius:12px; padding:1rem 1.25rem; display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.25rem;" id="reviewAppInfo"></div>
+                <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.25rem;" id="reviewLinks"></div>
+                <div class="status-update-bar">
+                    <h6><i class="bi bi-sliders me-2"></i>Update Application Status</h6>
+                    <form id="reviewStatusForm" method="POST" novalidate>
+                        <input type="hidden" name="return_section" id="reviewReturnSection" value="pipeline">
+                        <input type="hidden" name="return_drive_id" id="reviewReturnDriveId" value="">
+                        <div class="status-options" id="reviewStatusOptions"></div>
+                        <div id="reviewInterviewScheduleFields" style="display:none; margin-bottom:1rem; background:rgba(139,92,246,0.06); border:1.5px solid rgba(139,92,246,0.2); border-radius:10px; padding:0.9rem;">
+                            <div style="font-size:0.78rem; font-weight:700; color:var(--purple); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.55rem;">Interview Schedule</div>
+                            <div class="form-row form-row-2">
+                                <div class="form-group u-mb-075">
+                                    <label class="form-label">Interview Date</label>
+                                    <input type="date" name="interview_date" id="reviewInterviewDate" class="form-control-custom">
+                                </div>
+                                <div class="form-group u-mb-075">
+                                    <label class="form-label">Interview Time</label>
+                                    <input type="time" name="interview_time" id="reviewInterviewTime" class="form-control-custom">
+                                </div>
+                            </div>
+                            <div class="form-row form-row-2">
+                                <div class="form-group u-mb-0">
+                                    <label class="form-label">Mode</label>
+                                    <select name="interview_mode" id="reviewInterviewMode" class="form-control-custom">
+                                        <option value="Online">Online</option>
+                                        <option value="In-Person">In-Person</option>
+                                        <option value="Phone">Phone</option>
+                                    </select>
+                                </div>
+                                <div class="form-group u-mb-0">
+                                    <label class="form-label">Notes</label>
+                                    <input type="text" name="interview_notes" id="reviewInterviewNotes" class="form-control-custom" placeholder="Optional interview notes">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="reviewInterviewActions" style="display:none; margin-bottom:1rem; background:var(--grey-50); border:1.5px solid var(--grey-200); border-radius:10px; padding:0.85rem 0.9rem;"></div>
+                        <div class="form-group">
+                            <label class="form-label">Remark / Feedback <small style="text-transform:none; letter-spacing:0; font-weight:400; color:var(--grey-400);">(optional)</small></label>
+                            <textarea name="remark" id="reviewRemark" class="form-control-custom" rows="2" placeholder="Leave a note for internal reference…"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Internal Note (Company Only) <small style="text-transform:none; letter-spacing:0; font-weight:400; color:var(--grey-400);">(private)</small></label>
+                            <textarea name="internal_note" id="reviewInternalNote" class="form-control-custom" rows="3" placeholder="Add private notes for your hiring team. Students cannot see this."></textarea>
+                        </div>
+                        <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                            <button type="button" class="btn-c btn-c-outline" onclick="closeReviewGoBack()"><i class="bi bi-arrow-left"></i> Back</button>
+                            <button type="submit" class="btn-c btn-c-primary"><i class="bi bi-check2-circle"></i> Save Status</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Interview Modal -->
+<div class="modal-overlay" id="scheduleInterviewOverlay" onclick="handleOverlayClick(event,'scheduleInterviewOverlay')">
+    <div class="modal-panel modal-sm" onclick="event.stopPropagation()">
+        <div class="modal-hdr">
+            <div><div class="modal-hdr-title"><i class="bi bi-camera-video-fill"></i> Schedule Interview</div><div class="modal-hdr-sub" id="scheduleInterviewSubtitle">Set date and time</div></div>
+            <button class="modal-close-btn" onclick="closeModal('scheduleInterviewOverlay')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-bd">
+            <div class="form-group"><label class="form-label">Interview Date <span class="required">*</span></label><input type="date" id="interviewDateInput" class="form-control-custom" required></div>
+            <div class="form-group"><label class="form-label">Interview Time <span class="required">*</span></label><input type="time" id="interviewTimeInput" class="form-control-custom" required></div>
+            <div class="form-group"><label class="form-label">Mode</label>
+                <select id="interviewModeInput" class="form-control-custom">
+                    <option value="Online">Online</option><option value="In-Person">In-Person</option><option value="Phone">Phone</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Notes <small style="text-transform:none; font-weight:400; color:var(--grey-400);">(optional)</small></label><textarea id="interviewNotesInput" class="form-control-custom" rows="2" placeholder="e.g. Join via Google Meet link…"></textarea></div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn-c btn-c-outline" onclick="closeModal('scheduleInterviewOverlay')">Cancel</button>
+            <button class="btn-c btn-c-purple" onclick="confirmScheduleInterview()"><i class="bi bi-calendar-check"></i> Schedule</button>
+        </div>
+    </div>
+</div>
+
+<!-- Close Drive Confirm -->
+<div class="modal-overlay" id="closeDriveOverlay" onclick="handleOverlayClick(event,'closeDriveOverlay')">
+    <div class="modal-panel modal-sm" onclick="event.stopPropagation()">
+        <div class="modal-hdr"><div class="modal-hdr-title"><i class="bi bi-x-circle-fill"></i> Close Placement Drive</div><button class="modal-close-btn" onclick="closeModal('closeDriveOverlay')"><i class="bi bi-x-lg"></i></button></div>
+        <div class="confirm-modal-body">
+            <div class="confirm-icon warning"><i class="bi bi-x-circle-fill"></i></div>
+            <div class="confirm-title">Close this drive?</div>
+            <p class="confirm-text">Students will no longer be able to apply to "<strong id="closeDriveTitle"></strong>". Existing applications remain intact.</p>
+        </div>
+        <div class="modal-ft"><button class="btn-c btn-c-outline" onclick="closeModal('closeDriveOverlay')">Cancel</button><a id="closeDriveConfirmBtn" href="#" class="btn-c btn-c-warning"><i class="bi bi-x-circle"></i> Yes, Close Drive</a></div>
+    </div>
+</div>
+
+<!-- Delete Drive Confirm -->
+<div class="modal-overlay" id="deleteDriveOverlay" onclick="handleOverlayClick(event,'deleteDriveOverlay')">
+    <div class="modal-panel modal-sm" onclick="event.stopPropagation()">
+        <div class="modal-hdr"><div class="modal-hdr-title"><i class="bi bi-trash-fill"></i> Delete Drive</div><button class="modal-close-btn" onclick="closeModal('deleteDriveOverlay')"><i class="bi bi-x-lg"></i></button></div>
+        <div class="confirm-modal-body">
+            <div class="confirm-icon danger"><i class="bi bi-trash-fill"></i></div>
+            <div class="confirm-title">Permanently Delete?</div>
+            <p class="confirm-text">This will permanently delete "<strong id="deleteDriveTitle"></strong>" and all related data. This cannot be undone.</p>
+        </div>
+        <div class="modal-ft"><button class="btn-c btn-c-outline" onclick="closeModal('deleteDriveOverlay')">Cancel</button><a id="deleteDriveConfirmBtn" href="#" class="btn-c btn-c-danger"><i class="bi bi-trash"></i> Yes, Delete</a></div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-overlay" id="editProfileOverlay" onclick="handleOverlayClick(event,'editProfileOverlay')">
+    <div class="modal-panel modal-lg" onclick="event.stopPropagation()">
+        <div class="modal-hdr">
+            <div><div class="modal-hdr-title"><i class="bi bi-building-gear"></i> Edit Company Profile</div></div>
+            <button class="modal-close-btn" onclick="closeModal('editProfileOverlay')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <form action="{{ url_for('edit_company_profile') }}" method="POST" novalidate>
+            <input type="hidden" name="return_section" value="profile">
+            <div class="modal-bd">
+                <div class="profile-section-head">
+                    <div class="edit-avatar">{{ company.company_name[0].upper() if company else 'C' }}</div>
+                    <div>
+                        <div style="font-size:1.1rem; font-weight:700;">{{ company.company_name if company else 'Company' }}</div>
+                        <div class="modal-hdr-sub">ID: {{ company.company_id if company and company.company_id else '—' }}</div>
+                    </div>
+                </div>
+                <div class="modal-section-title"><i class="bi bi-building"></i> Company Information</div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Company Name</label><input type="text" class="form-control-custom" value="{{ company.company_name if company else '' }}" disabled readonly><div class="input-hint">Contact admin to change company name</div></div>
+                    <div class="form-group"><label class="form-label">Industry</label><div class="select-wrapper"><i class="select-icon bi bi-briefcase"></i><select name="industry" class="form-control-custom"><option value="">— Select Industry —</option>{% for ind in ['IT / Software', 'Fintech', 'E-commerce', 'Healthcare', 'Manufacturing', 'Consulting', 'Banking / Finance', 'Education / EdTech', 'Telecom', 'Other'] %}<option value="{{ ind }}" {{ 'selected' if company and company.industry == ind else '' }}>{{ ind }}</option>{% endfor %}</select></div></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Company Size</label><div class="select-wrapper"><i class="select-icon bi bi-people"></i><select name="company_size" class="form-control-custom"><option value="">— Select Size —</option>{% for sz in ['1–50', '51–200', '201–500', '501–1000', '1000+'] %}<option value="{{ sz }}" {{ 'selected' if company and company.company_size == sz else '' }}>{{ sz }}</option>{% endfor %}</select></div></div>
+                    <div class="form-group"><label class="form-label">Headquarters</label><input type="text" name="location" class="form-control-custom" value="{{ company.location if company else '' }}" placeholder="e.g. Mumbai, India"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Website</label><input type="url" name="website" class="form-control-custom" value="{{ company.website if company else '' }}" placeholder="https://yourcompany.com"></div>
+                <div class="form-group"><label class="form-label">Company Description</label><textarea name="description" class="form-control-custom" rows="3" placeholder="Brief description…">{{ company.description if company else '' }}</textarea></div>
+                <div class="modal-section-title mt-2"><i class="bi bi-person-badge"></i> HR / Contact Details</div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">HR Contact Name</label><input type="text" name="hr_contact" class="form-control-custom" value="{{ company.hr_contact if company else '' }}" placeholder="e.g. Priya Sharma"></div>
+                    <div class="form-group"><label class="form-label">HR Designation</label><input type="text" name="hr_designation" class="form-control-custom" value="{{ company.hr_designation if company else '' }}" placeholder="e.g. HR Manager"></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Mobile</label><input type="text" name="mobile" class="form-control-custom" value="{{ company.mobile if company else '' }}" placeholder="+91 XXXXX XXXXX"></div>
+                    <div class="form-group"><label class="form-label">Office Number</label><input type="text" name="office_number" class="form-control-custom" value="{{ company.office_number if company else '' }}" placeholder="Office landline"></div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group"><label class="form-label">Login Email</label><input type="email" class="form-control-custom" value="{{ company.email if company else '' }}" disabled readonly><div class="input-hint">Contact admin to change login email</div></div>
+                    <div class="form-group"><label class="form-label">Alternate Email</label><input type="email" name="alt_email" class="form-control-custom" value="{{ company.alt_email if company else '' }}" placeholder="alternate@company.com"></div>
+                </div>
+            </div>
+            <div class="modal-ft">
+                <button type="button" class="btn-c btn-c-outline" onclick="closeModal('editProfileOverlay')">Cancel</button>
+                <button type="submit" class="btn-c btn-c-primary"><i class="bi bi-check2-circle"></i> Save Profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ================================================
+   INLINE DRIVE DATA — built from Jinja
+================================================ */
+const COMPANY_ID = {{ company.id if company else 0 }};
+
+const DRIVE_DATA = {
+    {% for drive in all_drives %}
+    {{ drive.id }}: {
+        id: {{ drive.id }},
+        drive_id: {{ (drive.drive_id or ('D-'+drive.id|string))|tojson }},
+        job_title: {{ drive.job_title|tojson }},
+        job_description: {{ drive.job_description|tojson }},
+        eligibility: {{ (drive.eligibility_criteria or '')|tojson }},
+        salary: {{ drive.salary or 'null' }},
+        location: {{ (drive.location or '')|tojson }},
+        deadline: "{{ drive.application_deadline.strftime('%Y-%m-%d') if drive.application_deadline else '' }}",
+        deadline_time: "{{ drive.application_deadline_time.strftime('%H:%M') if drive.application_deadline_time else '' }}",
+        deadline_display: "{{ drive.application_deadline.strftime('%d %b %Y') if drive.application_deadline else '' }}",
+        publish_date: "{{ drive.publish_date.strftime('%Y-%m-%d') if drive.publish_date else '' }}",
+        publish_time: "{{ drive.publish_time.strftime('%H:%M') if drive.publish_time else '' }}",
+        publish_display: "{{ drive.publish_at_ist.strftime('%d %b %Y, %I:%M %p IST') if drive.publish_at_ist else 'Immediate after approval' }}",
+        is_live_for_students: {{ 'true' if drive.is_published_for_students else 'false' }},
+        job_type: {{ (drive.job_type or '')|tojson }},
+        work_mode: {{ (drive.work_mode or '')|tojson }},
+        experience_level: {{ (drive.experience_level or '')|tojson }},
+        vacancies: {{ drive.vacancies or 'null' }},
+        selection_process: {{ (drive.selection_process or '')|tojson }},
+        required_skills: {{ (drive.required_skills or '')|tojson }},
+        additional_notes: {{ (drive.additional_notes or '')|tojson }},
+        status: {{ drive.status|tojson }},
+        created_at: "{{ drive.created_at.strftime('%d %b %Y') if drive.created_at else '' }}",
+        closed_at: "{{ drive.closed_at.strftime('%d %b %Y') if drive.closed_at else '' }}",
+        applications: [
+            {% for app in drive.applications %}
+            {
+                id: {{ app.id }},
+                status: {{ app.status|tojson }},
+                remark: {{ (app.remark or '')|tojson }},
+                internal_note: {{ (app.internal_note or '')|tojson }},
+                interview_date: "{{ app.interview_schedule.interview_date.strftime('%Y-%m-%d') if app.interview_schedule and app.interview_schedule.interview_date else '' }}",
+                interview_time: "{{ app.interview_schedule.interview_time.strftime('%H:%M') if app.interview_schedule and app.interview_schedule.interview_time else '' }}",
+                interview_mode: {{ (app.interview_schedule.mode if app.interview_schedule else '')|tojson }},
+                interview_notes: {{ (app.interview_schedule.notes if app.interview_schedule else '')|tojson }},
+                interview_schedule_id: {{ app.interview_schedule.id if app.interview_schedule else 'null' }},
+                interview_schedule_status: {{ (app.interview_schedule.schedule_status if app.interview_schedule else '')|tojson }},
+                date: "{{ app.application_date.strftime('%d %b %Y') }}",
+                time: "{{ app.application_date.strftime('%I:%M %p') }}",
+                student: {
+                    name: {{ (app.student.name if app.student else '')|tojson }},
+                    email: {{ (app.student.email if app.student else '')|tojson }},
+                    college: {{ (app.student.college or '' if app.student else '')|tojson }},
+                    degree: {{ (app.student.degree or '' if app.student else '')|tojson }},
+                    branch: {{ (app.student.branch or '' if app.student else '')|tojson }},
+                    year_of_study: {{ (app.student.year_of_study or '' if app.student else '')|tojson }},
+                    graduation_year: {{ (app.student.graduation_year or '' if app.student else '')|tojson }},
+                    cgpa: {{ app.student.cgpa if app.student and app.student.cgpa else 'null' }},
+                    tenth_percent: {{ app.student.tenth_percent if app.student and app.student.tenth_percent else 'null' }},
+                    twelfth_percent: {{ app.student.twelfth_percent if app.student and app.student.twelfth_percent else 'null' }},
+                    skills: {{ (app.student.skills or '' if app.student else '')|tojson }},
+                    contact: {{ (app.student.contact or '' if app.student else '')|tojson }},
+                    linkedin: {{ (app.student.linkedin or '' if app.student else '')|tojson }},
+                    github: {{ (app.student.github or '' if app.student else '')|tojson }},
+                    bio: {{ (app.student.bio or '' if app.student else '')|tojson }},
+                    dob: "{{ app.student.dob if app.student and app.student.dob else '' }}",
+                    resume_url: {{ (app.student.resume_url or '' if app.student else '')|tojson }},
+                    student_id: {{ (app.student.student_id or '' if app.student else '')|tojson }}
+                }
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+/* Build flat lookup for all applications */
+const ALL_APPLICATIONS = {};
+Object.values(DRIVE_DATA).forEach(function(drive) {
+    drive.applications.forEach(function(app) {
+        ALL_APPLICATIONS[app.id] = app;
+        ALL_APPLICATIONS[app.id].drive_id     = drive.id;
+        ALL_APPLICATIONS[app.id].drive_title  = drive.job_title;
+        ALL_APPLICATIONS[app.id].drive_plx_id = drive.drive_id;
+    });
+});
+
+const HR_DATA = {
+    name:        {{ (company.hr_contact or '')|tojson if company else '""' }},
+    designation: {{ (company.hr_designation or '')|tojson if company else '""' }},
+    email:       {{ company.email|tojson if company else '""' }},
+    alt_email:   {{ (company.alt_email or '')|tojson if company else '""' }},
+    mobile:      {{ (company.mobile or '')|tojson if company else '""' }},
+    office:      {{ (company.office_number or '')|tojson if company else '""' }}
+};
+
+/* ================================================
+   STATE
+================================================ */
+let _currentReviewDriveId = null;
+let _reviewOpenedFrom     = null;
+let _currentDriveDetailId = null;
+let _currentDriveFilterStatus = 'all';
+let _currentReviewAppId = null;
+const SCHEDULED_INTERVIEWS = {
+    {% for iv in interview_schedules %}
+    {{ iv.application_id }}: {
+        scheduleId: {{ iv.id }},
+        appId: {{ iv.application_id }},
+        driveId: {{ iv.drive_id }},
+        date: "{{ iv.interview_date.strftime('%Y-%m-%d') if iv.interview_date else '' }}",
+        time: "{{ iv.interview_time.strftime('%H:%M') if iv.interview_time else '' }}",
+        mode: {{ (iv.mode or '')|tojson }},
+        notes: {{ (iv.notes or '')|tojson }},
+        status: {{ (iv.schedule_status or 'Scheduled')|tojson }},
+        studentName: {{ (iv.application.student.name if iv.application and iv.application.student else 'Student')|tojson }},
+        driveTitle: {{ (iv.drive.job_title if iv.drive else '')|tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+const INITIAL_SECTION = {{ (initial_section or 'overview')|tojson }};
+const ADMIN_BROADCASTS = [
+    {% for bc in received_broadcasts %}
+    { id: {{ bc.id }}, sent_at: {{ (bc.sent_at.strftime('%Y-%m-%d %H:%M:%S') if bc.sent_at else '')|tojson }} }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+window.COMPANY_DASHBOARD_DATA = {
+    notificationsSeed: {{ notifications_seed|tojson }},
+    closedDrivesCount: {{ closed_drives|length }}
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/company_dashboard.js') }}"></script>
+</body>
+</html>

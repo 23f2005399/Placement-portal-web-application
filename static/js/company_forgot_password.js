@@ -1,0 +1,193 @@
+'use strict';
+
+/* ─── UTILS ─── */
+function togglePwd(inputId, iconId) {
+    const inp = document.getElementById(inputId), ico = document.getElementById(iconId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    ico.classList.toggle('bi-eye');
+    ico.classList.toggle('bi-eye-slash');
+}
+function isValidEmail(v)     { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()); }
+function isValidCompanyId(v) { return /^PLAX\d{2}C\d{3,}$/i.test(v.trim()); }
+function isValidLookup(v)    { return isValidEmail(v) || isValidCompanyId(v); }
+
+/* ─── HEADER UPDATE ─── */
+const headerIcons  = ['bi-building-lock', 'bi-building-check', 'bi-key-fill'];
+const headerTitles = ['Reset Company Password', 'Verify Your Company', 'Set New Password'];
+const headerSubs   = [
+    'Verify your company identity to regain access',
+    'Confirm your registered company details',
+    'Almost there! Create your new password'
+];
+
+function updateHeader(step) {
+    document.getElementById('headerIconI').className = `bi ${headerIcons[step-1]}`;
+    document.getElementById('headerTitle').textContent = headerTitles[step-1];
+    document.getElementById('headerSub').textContent   = headerSubs[step-1];
+
+    for (let i = 1; i <= 3; i++) {
+        const dot  = document.getElementById(`dot${i}`);
+        const line = document.getElementById(`line${i}`);
+        dot.classList.remove('active', 'done');
+        if (line) line.classList.remove('done');
+        if (i < step) {
+            dot.classList.add('done');
+            dot.innerHTML = '<i class="bi bi-check-lg" style="font-size:0.8rem;"></i>';
+            if (line) line.classList.add('done');
+        } else if (i === step) {
+            dot.classList.add('active');
+        }
+    }
+}
+
+/* ─── SHOW STEP ─── */
+function showStep(n) {
+    for (let i = 1; i <= 3; i++) document.getElementById(`step${i}`).classList.remove('active');
+    document.getElementById(`step${n}`).classList.add('active');
+    updateHeader(n);
+}
+
+/* ─── STEP 1: VALIDATE LOOKUP INPUT ─── */
+const lookupEl = document.getElementById('lookupInput');
+
+lookupEl.addEventListener('input', function () {
+    const v   = this.value.trim();
+    const msg = document.getElementById('lookupMsg');
+    if (!v) {
+        msg.textContent = '';
+        this.classList.remove('is-valid', 'is-invalid');
+        document.getElementById('step1Btn').disabled = true;
+        return;
+    }
+    if (isValidLookup(v)) {
+        msg.className   = 'field-msg ok';
+        msg.textContent = isValidEmail(v) ? '✓ Valid email address' : '✓ Valid Company ID';
+        this.classList.add('is-valid');
+        this.classList.remove('is-invalid');
+    } else {
+        msg.className   = 'field-msg err';
+        msg.textContent = '✗ Enter a valid email or Company ID (e.g. PLAX26C001)';
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+    }
+    document.getElementById('step1Btn').disabled = !isValidLookup(v);
+});
+
+function goStep2() {
+    const v = lookupEl.value.trim();
+    if (!isValidLookup(v)) return;
+    document.getElementById('hiddenIdentifier').value = v;
+    // Auto-detect type for backend
+    document.getElementById('hiddenLookupType').value = isValidCompanyId(v) ? 'id' : 'email';
+    showStep(2);
+}
+
+function goStep1() { showStep(1); }
+
+/* ─── STEP 2: COMPANY NAME + DIGITS ─── */
+document.getElementById('companyNameInput').addEventListener('input', validateStep2);
+
+const digitIds = ['d1','d2','d3','d4'];
+digitIds.forEach((id, idx) => {
+    const box = document.getElementById(id);
+    box.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g,'').slice(-1);
+        if (this.value) {
+            this.classList.add('filled');
+            if (idx < 3) document.getElementById(digitIds[idx+1]).focus();
+        } else {
+            this.classList.remove('filled');
+        }
+        validateStep2();
+    });
+    box.addEventListener('keydown', function (e) {
+        if (e.key === 'Backspace' && !this.value && idx > 0) {
+            document.getElementById(digitIds[idx-1]).focus();
+        }
+    });
+    box.addEventListener('paste', function (e) {
+        e.preventDefault();
+        const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,4);
+        paste.split('').forEach((ch, i) => {
+            if (i < 4) { const b = document.getElementById(digitIds[i]); b.value = ch; b.classList.add('filled'); }
+        });
+        validateStep2();
+        document.getElementById(digitIds[Math.min(paste.length-1, 3)]).focus();
+    });
+});
+
+function getDigits() { return digitIds.map(id => document.getElementById(id).value).join(''); }
+
+function validateStep2() {
+    const name   = document.getElementById('companyNameInput').value.trim();
+    const digits = getDigits();
+    document.getElementById('step2Btn').disabled = !(name && digits.length === 4);
+}
+
+function goStep3() {
+    const name   = document.getElementById('companyNameInput').value.trim();
+    const digits = getDigits();
+    if (!name || digits.length !== 4) return;
+    document.getElementById('hiddenCompanyName').value = name;
+    document.getElementById('hiddenMobile4').value     = digits;
+    showStep(3);
+}
+
+/* ─── STEP 3: PASSWORD ─── */
+document.getElementById('newPassword').addEventListener('input', function () {
+    const p = this.value; let s = 0;
+    if (p.length >= 8) s += 25;
+    if (p.match(/[a-z]/) && p.match(/[A-Z]/)) s += 25;
+    if (p.match(/[0-9]/)) s += 25;
+    if (p.match(/[^a-zA-Z0-9]/)) s += 25;
+    const fill = document.getElementById('strengthFill'), txt = document.getElementById('strengthText');
+    fill.style.width = s + '%';
+    const lvl = {
+        0:   ['transparent',    'var(--grey-400)', 'Choose a strong password'],
+        25:  ['var(--danger)',  'var(--danger)',   'Weak — add more variety'],
+        50:  ['var(--warning)', 'var(--warning)',  'Fair — could be stronger'],
+        75:  ['var(--accent)',  'var(--accent)',   'Good password'],
+        100: ['var(--success)', 'var(--success)',  'Strong password!']
+    };
+    const e = lvl[s] || lvl[100];
+    fill.style.background = e[0]; txt.style.color = e[1]; txt.textContent = e[2];
+    checkPwdMatch(); validateStep3();
+});
+
+document.getElementById('confirmPassword').addEventListener('input', function () {
+    checkPwdMatch(); validateStep3();
+});
+
+function checkPwdMatch() {
+    const p1  = document.getElementById('newPassword').value;
+    const p2  = document.getElementById('confirmPassword').value;
+    const msg = document.getElementById('pwdMatchMsg');
+    if (!p2) { msg.textContent = ''; return; }
+    if (p1 === p2) { msg.className = 'field-msg ok'; msg.textContent = '✓ Passwords match'; }
+    else           { msg.className = 'field-msg err'; msg.textContent = '✗ Passwords do not match'; }
+}
+
+function validateStep3() {
+    const p1 = document.getElementById('newPassword').value;
+    const p2 = document.getElementById('confirmPassword').value;
+    document.getElementById('step3Btn').disabled = !(p1.length >= 8 && p1 === p2);
+}
+
+/* ─── FORM SUBMIT ─── */
+document.getElementById('resetForm').addEventListener('submit', function (e) {
+    const p1 = document.getElementById('newPassword').value;
+    const p2 = document.getElementById('confirmPassword').value;
+    if (!p1 || p1 !== p2 || p1.length < 8) { e.preventDefault(); return; }
+    document.getElementById('hiddenPassword').value = p1;
+    document.getElementById('submitTxt').classList.add('d-none');
+    document.getElementById('submitSpin').classList.remove('d-none');
+    document.getElementById('step3Btn').disabled = true;
+});
+
+/* ─── AUTO DISMISS ALERTS ─── */
+document.querySelectorAll('.alert').forEach(a => {
+    setTimeout(() => { a.style.opacity='0'; a.style.transition='opacity 0.3s'; setTimeout(()=>a.remove(),300); }, 5000);
+});
+
+// Init
+updateHeader(1);

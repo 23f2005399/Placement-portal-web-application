@@ -1,0 +1,400 @@
+{% extends 'auth/base_register.html' %}
+
+{% block title %}Company Registration | Plaxeron{% endblock %}
+
+{% block register_content %}
+<div class="split-container">
+
+    <!-- ══ LEFT PANEL ══ -->
+    <div class="left-panel">
+        <div class="left-topbar">
+            <a href="{{ url_for('home') }}" class="brand text-decoration-none">
+                <span class="brand-plax">Plax</span><span class="brand-eron">eron</span>
+            </a>
+            <a href="{{ url_for('home') }}" class="left-home-btn">
+                <i class="bi bi-house-door"></i> Home
+            </a>
+        </div>
+        <div class="content-wrapper">
+            <h1 class="hero-title">Join as a Hiring Partner</h1>
+            <p class="hero-subtitle">Connect with top campus talent across the nation</p>
+            <div class="benefits-stack">
+                <div class="benefit-card active" data-step="1">
+                    <div class="benefit-icon"><i class="bi bi-people-fill"></i></div>
+                    <h3 class="benefit-title">Access Verified Talent</h3>
+                    <p class="benefit-desc">Connect with thousands of pre-screened students from top engineering colleges nationwide.</p>
+                </div>
+                <div class="benefit-card" data-step="2">
+                    <div class="benefit-icon"><i class="bi bi-lightning-fill"></i></div>
+                    <h3 class="benefit-title">Instant Drive Posting</h3>
+                    <p class="benefit-desc">Post placement drives instantly and reach eligible candidates within minutes.</p>
+                </div>
+                <div class="benefit-card" data-step="3">
+                    <div class="benefit-icon"><i class="bi bi-shield-check"></i></div>
+                    <h3 class="benefit-title">Secure Platform</h3>
+                    <p class="benefit-desc">Your data is protected with enterprise-grade security and admin verification.</p>
+                </div>
+                <div class="benefit-card" data-step="4">
+                    <div class="benefit-icon"><i class="bi bi-graph-up"></i></div>
+                    <h3 class="benefit-title">Real-time Analytics</h3>
+                    <p class="benefit-desc">Track applications, monitor engagement, and make data-driven hiring decisions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ RIGHT PANEL ══ -->
+    <div class="right-panel">
+        <div class="form-container">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if message != 'Logged out successfully.' %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-3" role="alert">
+                            <i class="bi bi-{{ 'exclamation-triangle-fill' if category == 'error' else 'check-circle-fill' }} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Notice Box -->
+            <div class="notice-box">
+                <i class="bi bi-shield-check"></i>
+                <div>Company accounts require <strong>admin approval</strong> before you can log in. You will receive a unique Company ID upon registration.</div>
+            </div>
+
+            <!-- Stepper -->
+            <div class="stepper">
+                <div class="step-item active">
+                    <div class="step-circle active"><i class="bi bi-building"></i></div>
+                    <div class="step-label active">Company</div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-circle"><i class="bi bi-person-badge"></i></div>
+                    <div class="step-label">HR Contact</div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-circle"><i class="bi bi-lock-fill"></i></div>
+                    <div class="step-label">Credentials</div>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-circle"><i class="bi bi-check-circle-fill"></i></div>
+                    <div class="step-label">Review</div>
+                </div>
+            </div>
+
+            <!-- Hidden field to carry the generated company_id to backend -->
+            <form id="registrationForm" method="POST" action="{{ url_for('company_register') }}">
+
+                <!-- ══════ STEP 1: Company Details ══════ -->
+                <div class="form-step active" data-step="1">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-building"></i></div>
+                            <div class="header-title"><h5>Company Information</h5><p>Basic details about your organization</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <div class="mb-3">
+                                <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-building"></i></span>
+                                    <input type="text" class="form-control" id="companyName" name="company_name" placeholder="Your company name" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Industry / Sector <span class="text-danger">*</span></label>
+                                <div class="industry-grid" id="industryGrid">
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-it" value="IT" required>
+                                        <label for="ind-it"><i class="bi bi-cpu"></i> IT / Software</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-fin" value="Fintech">
+                                        <label for="ind-fin"><i class="bi bi-cash-stack"></i> Fintech</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-mfg" value="Manufacturing">
+                                        <label for="ind-mfg"><i class="bi bi-gear"></i> Manufacturing</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-con" value="Consulting">
+                                        <label for="ind-con"><i class="bi bi-briefcase"></i> Consulting</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-ban" value="Banking">
+                                        <label for="ind-ban"><i class="bi bi-bank"></i> Banking</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-hlt" value="Healthcare">
+                                        <label for="ind-hlt"><i class="bi bi-heart-pulse"></i> Healthcare</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-edu" value="EdTech">
+                                        <label for="ind-edu"><i class="bi bi-mortarboard"></i> EdTech</label>
+                                    </div>
+                                    <div class="industry-pill">
+                                        <input type="radio" name="industry" id="ind-oth" value="Other">
+                                        <label for="ind-oth"><i class="bi bi-three-dots"></i> Other</label>
+                                    </div>
+                                </div>
+                                <div id="other-industry-input">
+                                    <input type="text" name="industry_other" class="form-control mt-2" placeholder="Please specify your industry">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Company Size <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-people"></i></span>
+                                        <select class="form-select" name="company_size" id="companySize" required>
+                                            <option value="">Select size</option>
+                                            <option value="1-50">1–50 employees</option>
+                                            <option value="51-200">51–200 employees</option>
+                                            <option value="201-1000">201–1000 employees</option>
+                                            <option value="1000+">1000+ employees</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Headquarters Location <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-geo-alt"></i></span>
+                                        <input type="text" class="form-control" name="location" id="companyLocation" placeholder="e.g., Bengaluru, India" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Company Website <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-globe"></i></span>
+                                    <input type="url" class="form-control" id="companyWebsite" name="website" placeholder="https://yourcompany.com" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Company Profile <span style="color:var(--grey-400);font-weight:normal;">(Optional)</span></label>
+                                <textarea class="form-control" id="companyProfile" name="company_profile" rows="3" placeholder="Brief description of your company, mission, and size..."></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-primary-custom" id="nextBtn1" onclick="nextStep(2)" disabled>
+                                    Next Step <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════ STEP 2: HR Contact ══════ -->
+                <div class="form-step" data-step="2">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-person-badge"></i></div>
+                            <div class="header-title"><h5>HR Contact Details</h5><p>Primary point of contact information</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <div class="mb-3">
+                                <label class="form-label">HR / Recruiter Name <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" id="hrName" name="hr_contact" placeholder="Full name" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Designation / Role</label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-briefcase"></i></span>
+                                    <input type="text" class="form-control" id="hrDesignation" name="hr_designation" placeholder="e.g., HR Manager">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Official Email <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" class="form-control" id="hrEmail" name="email" placeholder="hr@company.com" required>
+                                    </div>
+                                    <span class="field-msg" id="emailMsg"></span>
+                                    <small class="text-muted" style="font-size:0.78rem;">Used as your login email or Company ID</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Alternate Email</label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-envelope-at"></i></span>
+                                        <input type="email" class="form-control" id="altEmail" name="alt_email" placeholder="alt@company.com">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-phone"></i></span>
+                                        <input type="tel" class="form-control" id="hrMobile" name="mobile" placeholder="9876543210" maxlength="10" inputmode="numeric" required>
+                                    </div>
+                                    <span class="field-msg" id="mobileMsg"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Office Number</label>
+                                    <div class="input-wrap">
+                                        <span class="input-icon"><i class="bi bi-telephone"></i></span>
+                                        <input type="tel" class="form-control" id="officeNumber" name="office_number" placeholder="+91 11 2345 6789">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-custom" onclick="prevStep(1)"><i class="bi bi-arrow-left me-2"></i> Previous</button>
+                                <button type="button" class="btn btn-primary-custom" id="nextBtn2" onclick="nextStep(3)" disabled>Next Step <i class="bi bi-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════ STEP 3: Credentials ══════ -->
+                <div class="form-step" data-step="3">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-lock-fill"></i></div>
+                            <div class="header-title"><h5>Login Credentials</h5><p>Set up your account password</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <div class="mb-3">
+                                <label class="form-label">Password <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control pwd-field" id="companyPassword" name="password" placeholder="Create a strong password" required>
+                                    <span class="pwd-toggle" onclick="togglePwd('companyPassword','iconPwd1')"><i class="bi bi-eye" id="iconPwd1"></i></span>
+                                </div>
+                                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                                <small class="strength-text" id="strengthText" style="color:var(--grey-400)">Choose a strong password</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                <div class="input-wrap">
+                                    <span class="input-icon"><i class="bi bi-lock-fill"></i></span>
+                                    <input type="password" class="form-control pwd-field" id="confirmPassword" name="confirm_password" placeholder="Re-enter your password" required>
+                                    <span class="pwd-toggle" onclick="togglePwd('confirmPassword','iconPwd2')"><i class="bi bi-eye" id="iconPwd2"></i></span>
+                                </div>
+                                <span class="field-msg" id="pwdMatchMsg"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-custom" onclick="prevStep(2)"><i class="bi bi-arrow-left me-2"></i> Previous</button>
+                                <button type="button" class="btn btn-primary-custom" id="nextBtn3" onclick="nextStep(4)" disabled>
+                                    Review & Submit <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════ STEP 4: Review ══════ -->
+                <div class="form-step" data-step="4">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon"><i class="bi bi-check-circle-fill"></i></div>
+                            <div class="header-title"><h5>Review Your Information</h5><p>Please verify all details before submitting</p></div>
+                        </div>
+                        <div class="form-card-body">
+
+                            <!-- ⭐ COMPANY ID HIGHLIGHT BOX ⭐ -->
+                            <div class="company-id-box">
+                                <div class="company-id-label"><i class="bi bi-fingerprint me-1"></i> Your Unique Company ID</div>
+                                <div class="company-id-value" id="displayCompanyId">PLAX--C---</div>
+                                <div class="mb-2">
+                                    <span class="badge-pending"><i class="bi bi-hourglass-split"></i> Pending Admin Activation</span>
+                                </div>
+                                <div class="company-id-note">
+                                    <strong>⚠ Please note this ID carefully.</strong> You can use it along with your password to login once approved by admin.
+                                    Your account will be activated after admin review.
+                                </div>
+                                <button type="button" class="btn-copy" id="copyIdBtn" onclick="copyCompanyId()">
+                                    <i class="bi bi-clipboard"></i> Copy ID
+                                </button>
+                            </div>
+
+                            <!-- Company Review -->
+                            <div class="review-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0" style="color:var(--navy);font-weight:700;"><i class="bi bi-building me-2" style="color:var(--accent);"></i>Company Details</h6>
+                                    <button type="button" class="btn btn-sm p-0" style="color:var(--accent);" onclick="nextStep(1)"><i class="bi bi-pencil-square"></i> Edit</button>
+                                </div>
+                                <div class="review-content">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Company Name</small><p id="reviewCompanyName" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Industry</small><p id="reviewIndustry" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Company Size</small><p id="reviewCompanySize" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Location</small><p id="reviewLocation" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-12 mb-0"><small style="color:var(--grey-400);font-weight:600;">Website</small><p id="reviewWebsite" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- HR Contact Review -->
+                            <div class="review-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0" style="color:var(--navy);font-weight:700;"><i class="bi bi-person-badge me-2" style="color:var(--accent);"></i>HR Contact</h6>
+                                    <button type="button" class="btn btn-sm p-0" style="color:var(--accent);" onclick="nextStep(2)"><i class="bi bi-pencil-square"></i> Edit</button>
+                                </div>
+                                <div class="review-content">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">HR Name</small><p id="reviewHRName" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Designation</small><p id="reviewDesignation" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-2"><small style="color:var(--grey-400);font-weight:600;">Email</small><p id="reviewEmail" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                        <div class="col-md-6 mb-0"><small style="color:var(--grey-400);font-weight:600;">Mobile</small><p id="reviewMobile" class="mb-0" style="color:var(--grey-700);">-</p></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Login info reminder -->
+                            <div class="alert" style="background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);color:var(--navy);font-size:0.85rem;">
+                                <i class="bi bi-info-circle-fill me-2" style="color:var(--accent);"></i>
+                                <strong>Login Options:</strong> After approval, you can log in using your <strong>Email</strong> <em>or</em> your <strong>Company ID</strong> along with your password.
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-custom" onclick="prevStep(3)"><i class="bi bi-arrow-left me-2"></i> Previous</button>
+                                <button type="submit" class="btn btn-primary-custom" id="submitBtn">
+                                    <span id="submitText"><i class="bi bi-send-fill me-2"></i> Submit Registration</span>
+                                    <span id="submitSpinner" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span> Submitting...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+
+            <!-- Already registered? -->
+            <div class="auth-link">
+                <span>Already registered?</span>
+                <a href="{{ url_for('company_login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/company_register.js') }}"></script>
+{% endblock %}

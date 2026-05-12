@@ -1,0 +1,78 @@
+{% extends 'auth/base_auth.html' %}
+
+{% block title %}Student Login | Plaxeron{% endblock %}
+{% block body_class %}auth-student{% endblock %}
+
+{% block background_icons %}
+<!-- Decorative floating icon layer for student login visual theme -->
+<div class="bg-scene">
+    <i class="bi bi-mortarboard bg-icon"></i>
+    <i class="bi bi-journal-bookmark bg-icon"></i>
+    <i class="bi bi-briefcase bg-icon"></i>
+    <i class="bi bi-graph-up bg-icon"></i>
+    <i class="bi bi-award bg-icon"></i>
+    <i class="bi bi-lightbulb bg-icon"></i>
+    <i class="bi bi-person-workspace bg-icon"></i>
+    <i class="bi bi-diagram-3 bg-icon"></i>
+    <i class="bi bi-code-slash bg-icon"></i>
+    <i class="bi bi-cpu bg-icon"></i>
+    <i class="bi bi-lightning bg-icon"></i>
+    <i class="bi bi-stars bg-icon"></i>
+</div>
+{% endblock %}
+
+{% block nav_action %}
+<a href="{{ url_for('student_register') }}" class="nav-btn nav-btn-primary"><i class="bi bi-person-plus"></i> Student Registration</a>
+{% endblock %}
+
+{% block card_header %}
+<!-- Card top section: identity + title + role switch tabs -->
+<div class="login-icon"><i class="bi bi-person-circle"></i></div>
+<h4>Student Login</h4>
+<p>Access your placement dashboard</p>
+<div class="tab-switcher">
+    <span class="tab-btn active"><i class="bi bi-person"></i> Student</span>
+    <a href="{{ url_for('company_login') }}" class="tab-btn inactive"><i class="bi bi-building"></i> Company</a>
+</div>
+{% endblock %}
+
+{% block card_body %}
+<!-- Login form block: credentials + submit action -->
+<form method="post" id="loginForm">
+    <div class="input-group-custom">
+        <label class="form-label">Email Address</label>
+        <div style="position:relative;">
+            <span class="input-icon"><i class="bi bi-envelope"></i></span>
+            <input type="text" name="email" class="form-control" placeholder="Email or Student ID (e.g. PLAX26S0001)" required autocomplete="username">
+        </div>
+    </div>
+
+    <div class="input-group-custom">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label mb-0">Password</label>
+            <a href="{{ url_for('student_forgot_password') }}" class="forgot-password">Forgot password?</a>
+        </div>
+        <div style="position:relative;">
+            <span class="input-icon"><i class="bi bi-lock"></i></span>
+            <input type="password" name="password" id="pwd" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+            <span class="password-toggle"><i class="bi bi-eye" id="icon"></i></span>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-login" id="btn">
+        <span id="txt"><i class="bi bi-box-arrow-in-right"></i> Login</span>
+        <span id="spin" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span> Logging in...</span>
+    </button>
+</form>
+
+<!-- Registration CTA block -->
+<div class="divider"><span>Don't have an account?</span></div>
+<div class="register-box">
+    <p><strong>New to Plaxeron?</strong><br>Create your student account and explore placement opportunities.</p>
+    <a href="{{ url_for('student_register') }}" class="btn-register"><i class="bi bi-person-plus"></i> Register</a>
+</div>
+{% endblock %}
+
+{% block card_footer %}
+&copy; 2026 <strong>Plaxeron</strong> Placement Portal
+{% endblock %}
