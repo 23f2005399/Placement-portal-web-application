@@ -6,12 +6,12 @@ Plaxeron is a comprehensive, enterprise-grade placement management system design
 
 ✨ **Multi-Role Authentication** – Dedicated interfaces for Students, Companies, and Admins with secure role-based access control  
 📋 **Placement Drive Management** – Create, manage, and track recruitment drives with real-time activity logs  
-📄** Resume Management** – Secure resume uploads with built-in file handling and validation  
+📄**Resume Management** – Secure resume uploads with built-in file handling and validation  
 📅 **Interview Scheduling** – Automated scheduling system with notifications for candidates and recruiters  
 🔔 **Smart Notifications** – Real-time alerts for applications, interviews, and broadcast updates  
 📊 **Admin Dashboard** – Comprehensive analytics, reporting, and data export capabilities  
 🔐 **RESTful API** – Fully documented OpenAPI 3.0 specification for seamless integrations  
-📱** Responsive UI** – Clean, modern interface optimized for desktop and mobile access
+📱**Responsive UI** – Clean, modern interface optimized for desktop and mobile access
 
 **Tech Stack**
 - Backend: Flask, SQLAlchemy, SQLite
